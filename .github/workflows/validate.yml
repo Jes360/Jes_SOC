@@ -57,21 +57,35 @@ jobs:
           Write-Host 'All PowerShell scripts parsed with 0 syntax errors.'
           "
 
-      - name: Secret Leakage & Sanitization Scan (NFR-02 / NFR-03)
+      - name: Secret Leakage Scan (NFR-02 - TruffleHog OSS)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified=false
+
+      - name: Evidence Sanitization Scan (NFR-03)
         run: |
-          echo "Scanning for un-sanitized RFC1918 private IPs or common secret patterns..."
-          # Fail if live API key patterns or internal passwords are found
+          echo "Scanning evidence directory for un-sanitized RFC1918 IPs, real hostnames, or personal data..."
           python -c "
           import os, re
-          forbidden = [r'AIza[0-9A-Za-z-_]{35}', r'AKIA[0-9A-Z]{16}']
-          for root, _, files in os.walk('.'):
-              if '.git' in root: continue
-              for f in files:
-                  path = os.path.join(root, f)
-                  with open(path, 'r', errors='ignore') as content:
-                      text = content.read()
-                      for p in forbidden:
-                          if re.search(p, text):
-                              raise ValueError(f'Potential secret matched pattern {p} in {path}')
-          print('Secret check passed: 0 exposed keys.')
+          # Enforce RFC 5737 documentation ranges or loopback only in evidence files
+          # Flag RFC 1918 private subnets if accidentally committed
+          rfc1918_patterns = [
+              r'\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',
+              r'\b172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}\b',
+              r'\b192\.168\.\d{1,3}\.\d{1,3}\b'
+          ]
+          evidence_dir = 'evidence'
+          if os.path.exists(evidence_dir):
+              for root, _, files in os.walk(evidence_dir):
+                  for f in files:
+                      if f == '.gitkeep': continue
+                      path = os.path.join(root, f)
+                      with open(path, 'r', errors='ignore') as content:
+                          text = content.read()
+                          for pat in rfc1918_patterns:
+                              matches = re.findall(pat, text)
+                              if matches:
+                                  raise ValueError(f'Un-sanitized RFC1918 IP {matches[0]} found in {path}. Use RFC 5737 documentation IPs (192.0.2.x, 198.51.100.x, 203.0.113.x) or loopback.')
+          print('Sanitization check passed: evidence directory conforms to NFR-03.')
           "
+

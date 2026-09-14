@@ -16,6 +16,11 @@ $$\text{Requirement} \longrightarrow \text{Design} \longrightarrow \text{Telemet
 
 This project does not attempt to construct a commercial product or claim unvalidated enterprise scale. Instead, it provides a strictly controlled, empirically validated environment demonstrating identity security, endpoint telemetry collection, canonical detection engineering, multi-event correlation, positive/negative validation testing, and forensic investigation.
 
+> [!NOTE]
+> **Taxonomy Baseline:**  
+> Enterprise MITRE ATT&CK v15 is intentionally pinned for V1 reproducibility to establish a consistent, immutable analytical baseline across all detection rules and correlation mappings.
+
+
 ---
 
 ## 2. Project Boundaries & Explicit Non-Claims

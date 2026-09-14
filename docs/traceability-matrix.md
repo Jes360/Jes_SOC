@@ -35,8 +35,9 @@ $$\text{FR / NFR} \iff \text{Design (DES)} \iff \text{Detection (DET)} \iff \tex
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **NFR-01** | Workstation Reproducibility | `docs/lab-environment.md` | Clean setup script test | `docs/lab-environment.md` | 🟡 Initialized |
 | **NFR-02** | Credential & Secret Hygiene | `docs/architecture.md#security` | TruffleHog / Git pre-commit scan | `evidence/ci/trufflehog-clean.log` | 🟡 Initialized |
-| **NFR-03** | Telemetry & Evidence Sanitization | `docs/data-model.md#sanitization` | Manual & regex audit of `/evidence/` | `evidence/` directory audit | 🟡 Initialized |
+| **NFR-03** | Telemetry & Evidence Sanitization | `docs/data-model.md#sanitization` | Manual & regex audit of `/evidence/` | `evidence/` directory audit | 🟠 PARTIAL — manual control exists, automated enforcement incomplete |
 | **NFR-04** | Continuous Integration Quality Gate | `docs/architecture.md#ci-cd` | GitHub Actions workflow execution | `.github/workflows/validate.yml` | 🟡 Initialized |
+
 
 ---
 

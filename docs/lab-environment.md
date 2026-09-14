@@ -72,28 +72,38 @@ Sysmon provides deep kernel telemetry that complements standard Windows Event lo
    sysmon64.exe -u
    ```
 
----
-
 ## 5. Lab Test Accounts & Isolation Boundary
 
-To prevent cross-contamination of personal user profiles or accidental lockouts:
+To prevent cross-contamination of personal user profiles or accidental lockouts, and in strict compliance with **NFR-02**:
+
+> [!IMPORTANT]
+> **Credential Hygiene Policy:**  
+> No static passwords or credentials are committed to this repository, including laboratory test passwords. All credentials used in test execution must be entered interactively via secure prompts or generated dynamically as transient secrets during script runs.
 
 * **Designated Test Account:** `lab_user_test`
-* **Local Test Password:** `LabTestPassword123!` (or transiently generated passwords during testing)
+* **Local Test Password:** Set dynamically at runtime (never hardcoded in scripts or documentation)
 * **Designated Service Account:** `svc_telemetry_test`
 * **Network Boundary:** All authentication requests originate locally or target localhost / loopback (`127.0.0.1`, `::1`), emitting legitimate `LogonType 2` (Interactive) or `LogonType 3` (Network) events without external routable traffic.
 
 ### Quick Account Setup Script (Elevated PowerShell):
 ```powershell
-# Create isolated local test account (disabled by default until testing)
-net user lab_user_test "LabTestPassword123!" /add /comment:"JestineSOC Isolated Test Account"
+# Prompt interactively for temporary laboratory password
+$LabPassword = Read-Host "Enter temporary lab password for lab_user_test" -AsSecureString
+$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($LabPassword))
+
+# Create isolated local test account
+net user lab_user_test $PlainPassword /add /comment:"JestineSOC Isolated Test Account"
 net user lab_user_test /active:yes
+
+# Clear plain text memory immediately
+$PlainPassword = $null
 ```
 
 ### Account Teardown Script:
 ```powershell
 net user lab_user_test /delete
 ```
+
 
 ---
 
