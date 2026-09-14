@@ -5,7 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.2.0] - 2026-09-14
+### Added
+- Authored Windows Security Audit policy specification (`telemetry/windows/audit-policy.md`) detailing Events 4624, 4625, and 4688.
+- Developed tuned laboratory Sysmon configuration (`telemetry/sysmon/sysmon-config.xml`) for Event 1 (Process Creation) and Event 3 (Network Connection).
+- Created authentic authentication event generator (`telemetry/generators/gen-auth-events.ps1`) using native Win32 `LogonUserW` API without synthetic log fabrication.
+- Created controlled process execution generator (`telemetry/generators/gen-powershell-events.ps1`) simulating T1059.001 encoded command behaviors.
+- Captured and logged sanitized JSON telemetry evidence for Event 4624/4625 (`evidence/telemetry/evtx-auth-sample.json`) and Sysmon Event 1/3 (`evidence/telemetry/sysmon-sample.json`).
+- Updated master traceability matrix (`docs/traceability-matrix.md`) validating FR-01 and FR-02.
+
 ## [0.1.0] - 2026-09-14
+
 ### Added
 - Initialized core repository skeleton and governance architecture.
 - Authored master requirements specification (`docs/requirements.md`) establishing functional requirements (FR-01 to FR-08), non-functional requirements (NFR-01 to NFR-04), detection maturity levels, and explicit non-claims.

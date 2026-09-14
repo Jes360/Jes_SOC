@@ -1,0 +1,92 @@
+<!--
+  JestineSOC Tuned Laboratory Sysmon Configuration
+  Document ID: SYS-V1-CONFIG
+  Version: v0.1.0
+  Requirement Mapping: FR-02, ADR-002
+  Target: Microsoft Sysinternals Sysmon v15.x (Schema 4.90)
+  
+  Scope & Boundary:
+  This configuration is specifically tuned for security telemetry experiments within a laboratory environment.
+  It prioritizes high-fidelity process execution (Event 1) and network connection (Event 3) capture while
+  suppressing benign operating system noise.
+-->
+<Sysmon schemaversion="4.90">
+  <!-- Global Hash Algorithms: SHA256 for deterministic file identification -->
+  <HashAlgorithms>SHA256</HashAlgorithms>
+  <CheckRevocation/>
+
+  <EventFiltering>
+    <!-- =================================================================== -->
+    <!-- Event ID 1: Process Creation (FR-02)                                -->
+    <!-- Captures process lineage, full command lines, and ProcessGuid      -->
+    <!-- =================================================================== -->
+    <RuleGroup name="ProcessCreation" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <!-- Living off the Land Binaries (LOLBins) & Script Interpreters -->
+        <Image condition="image">powershell.exe</Image>
+        <Image condition="image">pwsh.exe</Image>
+        <Image condition="image">cmd.exe</Image>
+        <Image condition="image">wmic.exe</Image>
+        <Image condition="image">cscript.exe</Image>
+        <Image condition="image">wscript.exe</Image>
+        <Image condition="image">mshta.exe</Image>
+        <Image condition="image">rundll32.exe</Image>
+        <Image condition="image">regsvr32.exe</Image>
+        <Image condition="image">certutil.exe</Image>
+        <Image condition="image">bitsadmin.exe</Image>
+
+        <!-- Command-Line Suspicious Flag Heuristics (T1059.001) -->
+        <CommandLine condition="contains">-EncodedCommand</CommandLine>
+        <CommandLine condition="contains">-enc</CommandLine>
+        <CommandLine condition="contains">-ExecutionPolicy Bypass</CommandLine>
+        <CommandLine condition="contains">-ep bypass</CommandLine>
+        <CommandLine condition="contains">-WindowStyle Hidden</CommandLine>
+        <CommandLine condition="contains">-w hidden</CommandLine>
+        <CommandLine condition="contains">-NonInteractive</CommandLine>
+        <CommandLine condition="contains">-NoProfile</CommandLine>
+        <CommandLine condition="contains">DownloadString</CommandLine>
+        <CommandLine condition="contains">Invoke-Expression</CommandLine>
+        <CommandLine condition="contains">IEX</CommandLine>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <RuleGroup name="ProcessCreationExclusions" groupRelation="or">
+      <ProcessCreate onmatch="exclude">
+        <!-- High-noise standard Windows background binaries without CLI arguments -->
+        <Image condition="is">C:\Windows\System32\audiodg.exe</Image>
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- =================================================================== -->
+    <!-- Event ID 3: Network Connection Detected (FR-02)                     -->
+    <!-- Captures outbound sockets and binds to ProcessGuid                  -->
+    <!-- =================================================================== -->
+    <RuleGroup name="NetworkConnection" groupRelation="or">
+      <NetworkConnect onmatch="include">
+        <!-- Network activity initiated by command interpreters -->
+        <Image condition="image">powershell.exe</Image>
+        <Image condition="image">pwsh.exe</Image>
+        <Image condition="image">cmd.exe</Image>
+        <Image condition="image">rundll32.exe</Image>
+        <Image condition="image">regsvr32.exe</Image>
+
+        <!-- Sensitive Port Targeting (SMB, RDP, Web) -->
+        <DestinationPort condition="is">445</DestinationPort>
+        <DestinationPort condition="is">3389</DestinationPort>
+        <DestinationPort condition="is">5985</DestinationPort>
+        <DestinationPort condition="is">5986</DestinationPort>
+        <DestinationPort condition="is">8000</DestinationPort>
+        <DestinationPort condition="is">8088</DestinationPort>
+      </NetworkConnect>
+    </RuleGroup>
+
+    <RuleGroup name="NetworkConnectionExclusions" groupRelation="or">
+      <NetworkConnect onmatch="exclude">
+        <!-- Filter loopback broadcast noise -->
+        <DestinationIp condition="is">255.255.255.255</DestinationIp>
+        <DestinationIp condition="is">224.0.0.252</DestinationIp>
+      </NetworkConnect>
+    </RuleGroup>
+  </EventFiltering>
+</Sysmon>

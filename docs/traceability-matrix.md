@@ -18,8 +18,9 @@ $$\text{FR / NFR} \iff \text{Design (DES)} \iff \text{Detection (DET)} \iff \tex
 
 | Req ID | Requirement Summary | Design Specification | Implementation File | Test Case ID | Evidence Artifact | Current Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FR-01** | Windows Authentication Telemetry (4624/4625) | `docs/data-model.md#windows-auth` | `telemetry/windows/audit-policy.md`<br>`telemetry/generators/gen-auth-events.ps1` | `TC-TEL-001` | `evidence/telemetry/evtx-auth-sample.json` | 🟡 Initialized |
-| **FR-02** | Sysmon Telemetry (Events 1 & 3) | `docs/data-model.md#sysmon-schema` | `telemetry/sysmon/sysmon-config.xml` | `TC-TEL-002` | `evidence/telemetry/sysmon-sample.json` | 🟡 Initialized |
+| **FR-01** | Windows Authentication Telemetry (4624/4625) | `docs/data-model.md#windows-auth` | `telemetry/windows/audit-policy.md`<br>`telemetry/generators/gen-auth-events.ps1` | `TC-TEL-001` | `evidence/telemetry/evtx-auth-sample.json` | 🟢 VALIDATED — Authentic LSASS Telemetry Captured |
+| **FR-02** | Sysmon Telemetry (Events 1 & 3) | `docs/data-model.md#sysmon-schema` | `telemetry/sysmon/sysmon-config.xml` | `TC-TEL-002` | `evidence/telemetry/sysmon-sample.json` | 🟢 VALIDATED — Tuned Config & Schema Mapped |
+
 | **FR-03** | Atomic Failed Logon Detection (Event 4625) | `docs/detection-engineering.md#det-win-001` | `detections/sigma/windows_failed_logon.yml` | `TC-POS-001`<br>`TC-NEG-001` | `evidence/detections/ev-atomic-failed-logon.log` | 🟡 Initialized |
 | **FR-04** | Brute-Force Sequence Correlation | `docs/detection-engineering.md#corr-win-001` | `correlations/mr_bruteforce_after_failures.yml` | `TC-POS-004`<br>`TC-NEG-004` | `evidence/detections/ev-bruteforce-correlation.log` | 🟡 Initialized |
 | **FR-05** | Negative Testing & FP Suppression | `docs/testing.md#negative-testing` | `tests/negative/test_bruteforce_negative.ps1` | `TC-NEG-004` | `evidence/detections/ev-neg-test-suppressed.log` | 🟡 Initialized |

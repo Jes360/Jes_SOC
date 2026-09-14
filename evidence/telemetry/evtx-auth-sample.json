@@ -1,0 +1,116 @@
+{
+  "AuditMetadata": {
+    "LabSession": "LAB-SES-001",
+    "Auditor": "JestineSOC Telemetry Harness",
+    "Standard": "NIST CSF 2.0 (DE.CM-01) / FR-01",
+    "SanitizationStatus": "Sanitized (RFC 5737 / Local Loopback)"
+  },
+  "Events": [
+    {
+      "EventID": 4625,
+      "ProviderName": "Microsoft-Windows-Security-Auditing",
+      "TimeCreated": "2026-09-14T12:22:28.120Z",
+      "Keywords": "Audit Failure",
+      "EventData": {
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB-HOST01",
+        "Status": "0xc000006d",
+        "SubStatus": "0xc000006a",
+        "LogonType": "3",
+        "LogonProcessName": "Advapi  ",
+        "AuthenticationPackageName": "Negotiate",
+        "WorkstationName": "LAB-CLIENT01",
+        "IpAddress": "127.0.0.1",
+        "IpPort": "51234"
+      }
+    },
+    {
+      "EventID": 4625,
+      "ProviderName": "Microsoft-Windows-Security-Auditing",
+      "TimeCreated": "2026-09-14T12:22:28.380Z",
+      "Keywords": "Audit Failure",
+      "EventData": {
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB-HOST01",
+        "Status": "0xc000006d",
+        "SubStatus": "0xc000006a",
+        "LogonType": "3",
+        "LogonProcessName": "Advapi  ",
+        "AuthenticationPackageName": "Negotiate",
+        "WorkstationName": "LAB-CLIENT01",
+        "IpAddress": "127.0.0.1",
+        "IpPort": "51235"
+      }
+    },
+    {
+      "EventID": 4625,
+      "ProviderName": "Microsoft-Windows-Security-Auditing",
+      "TimeCreated": "2026-09-14T12:22:28.640Z",
+      "Keywords": "Audit Failure",
+      "EventData": {
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB-HOST01",
+        "Status": "0xc000006d",
+        "SubStatus": "0xc000006a",
+        "LogonType": "3",
+        "LogonProcessName": "Advapi  ",
+        "AuthenticationPackageName": "Negotiate",
+        "WorkstationName": "LAB-CLIENT01",
+        "IpAddress": "127.0.0.1",
+        "IpPort": "51236"
+      }
+    },
+    {
+      "EventID": 4625,
+      "ProviderName": "Microsoft-Windows-Security-Auditing",
+      "TimeCreated": "2026-09-14T12:22:28.900Z",
+      "Keywords": "Audit Failure",
+      "EventData": {
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB-HOST01",
+        "Status": "0xc000006d",
+        "SubStatus": "0xc000006a",
+        "LogonType": "3",
+        "LogonProcessName": "Advapi  ",
+        "AuthenticationPackageName": "Negotiate",
+        "WorkstationName": "LAB-CLIENT01",
+        "IpAddress": "127.0.0.1",
+        "IpPort": "51237"
+      }
+    },
+    {
+      "EventID": 4625,
+      "ProviderName": "Microsoft-Windows-Security-Auditing",
+      "TimeCreated": "2026-09-14T12:22:29.160Z",
+      "Keywords": "Audit Failure",
+      "EventData": {
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB-HOST01",
+        "Status": "0xc000006d",
+        "SubStatus": "0xc000006a",
+        "LogonType": "3",
+        "LogonProcessName": "Advapi  ",
+        "AuthenticationPackageName": "Negotiate",
+        "WorkstationName": "LAB-CLIENT01",
+        "IpAddress": "127.0.0.1",
+        "IpPort": "51238"
+      }
+    },
+    {
+      "EventID": 4624,
+      "ProviderName": "Microsoft-Windows-Security-Auditing",
+      "TimeCreated": "2026-09-14T12:22:30.500Z",
+      "Keywords": "Audit Success",
+      "EventData": {
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB-HOST01",
+        "LogonType": "3",
+        "LogonGuid": "{B83F4192-A109-4C41-9872-0192837465AF}",
+        "AuthenticationPackageName": "Negotiate",
+        "WorkstationName": "LAB-CLIENT01",
+        "IpAddress": "127.0.0.1",
+        "IpPort": "51240"
+      }
+    }
+  ]
+}
