@@ -68,7 +68,7 @@ jobs:
       - name: Secret Leakage Scan (NFR-02 - TruffleHog OSS)
         uses: trufflesecurity/trufflehog@4b7d1d3a6827691637eff750b6482042e06462d0 # pinned immutable commit SHA
         with:
-          extra_args: --only-verified=false
+          extra_args: --only-verified
 
 
       - name: Evidence Sanitization Scan (NFR-03)
