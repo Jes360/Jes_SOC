@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.2.2] - 2026-09-15
+### Fixed
+- **P1-07 (Verification Completeness & Logic Tightening):** Closed verification loophole in `telemetry/generators/gen-auth-events.ps1` by enforcing strict multi-factor equality: `FailuresRequested == FailuresEmitted == FailuresObserved` AND `SuccessRequested == SuccessEmitted == SuccessObserved`.
+- **Query Boundary Hardening:** Bounded `Get-WinEvent` Security log query with both lower (`StartTime`) and upper (`EndTime`) time limits, preventing historical event false matching.
+- **Event Record Identification:** Enriched verification engine to extract and record the unique operating system `RecordId`, `EventID`, `TimeCreated`, `TargetUserName`, and `LogonType` for every observed event.
+- **Terminology Calibration:** Corrected event generation terminology to reflect authentic OS causality: *"A successful native Windows authentication was performed, causing Windows Security auditing to record Event 4624."*
+- **Evidence Provenance & Lineage:** Documented the 7-stage chain of custody in `evidence/telemetry/README.md` and enriched `evidence/telemetry/evtx-auth-sample.json` with an explicit `ProvenanceChain` and individual event `RecordId` fields.
+- **Full Supply Chain Pinning:** Pinned all third-party GitHub Actions in `.github/workflows/validate.yml` to immutable commit SHAs (`actions/checkout@11d5960a3267...`, `actions/setup-python@a26af69b...`, `trufflesecurity/trufflehog@4b7d1d3a...`).
+- **NFR-03 Calibration:** Calibrated verification wording in `docs/traceability-matrix.md` and CI workflow to accurately reflect automated RFC 1918 private-IP checking.
+
 ## [0.2.1] - 2026-09-14
 ### Fixed
 - **P1-01 (CI Pipeline):** Made Sigma rule and correlation validation steps in GitHub Actions phase-aware, preventing premature failures on empty directories during Phase 1.

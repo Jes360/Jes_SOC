@@ -32,7 +32,9 @@ param(
     [switch]$TriggerSuccess,
     [Security.SecureString]$ValidPassword,
     [int]$DelayMs = 250,
-    [string]$TestCaseId = "TC-TEL-001"
+    [string]$TestCaseId = "TC-TEL-001",
+    [switch]$ExportEvidence,
+    [string]$EvidenceOutputPath = "evidence/telemetry/evtx-auth-sample.json"
 )
 
 # Native P/Invoke binding to advapi32.dll LogonUserW
@@ -86,11 +88,12 @@ $runMetadata = [ordered]@{
     LogonType         = 3
     FailuresRequested = $FailureCount
     FailuresEmitted   = 0
-    SuccessRequested  = [int][bool]$TriggerSuccess
+    FailuresObserved  = 0
+    SuccessRequested  = $(if ($TriggerSuccess) { 1 } else { 0 })
     SuccessEmitted    = 0
-    ObservedFailures  = "UNVERIFIED"
-    ObservedSuccess   = "UNVERIFIED"
+    SuccessObserved   = 0
     VerificationState = "PENDING"
+    ObservedEvents    = @()
 }
 
 # 1. Execute Authentic Failed Authentication Sequence
@@ -141,10 +144,10 @@ if ($TriggerSuccess) {
         }
 
         if ($authSuccess) {
-            Write-Host "[+] Genuine successful authentication accepted by LSASS (Event 4624 emitted)." -ForegroundColor Green
+            Write-Host "[+] A successful native Windows authentication was performed, causing Windows Security auditing to record Event 4624." -ForegroundColor Green
             $runMetadata.SuccessEmitted = 1
         } else {
-            Write-Warning "LogonUser failed for '$TargetUser' with Win32 Error: $win32SuccessError. Event 4624 NOT emitted."
+            Write-Warning "LogonUser failed for '$TargetUser' with Win32 Error: $win32SuccessError. Event 4624 NOT recorded."
             $runMetadata.SuccessEmitted = 0
         }
     }
@@ -153,48 +156,94 @@ if ($TriggerSuccess) {
 $EndTime = Get-Date
 $runMetadata["EndTime"] = $EndTime.ToString("o")
 
-# 3. Programmatic Event Log Verification (P1-03)
+# Allow short delay for Windows Event Log subsystem buffer flushing
+Start-Sleep -Milliseconds 750
+
+# 3. Programmatic Event Log Verification (P1-07)
 Write-Host "`n[*] Performing programmatic event log verification..." -ForegroundColor Gray
 try {
-    # Check if caller has read permission to Security log
+    # Query boundaries: StartTime <= event.TimeCreated <= EndTime (with buffer margins)
+    $queryStartTime = $StartTime.AddSeconds(-1)
+    $queryEndTime = $EndTime.AddSeconds(3)
+
     $detectedFailures = @(Get-WinEvent -FilterHashtable @{
         LogName   = "Security"
         Id        = 4625
-        StartTime = $StartTime.AddSeconds(-2)
+        StartTime = $queryStartTime
+        EndTime   = $queryEndTime
     } -ErrorAction Stop | Where-Object {
-        $_.Properties[5].Value -eq $TargetUser -or $_.Message -match $TargetUser
+        $_.TimeCreated -ge $StartTime.AddMilliseconds(-500) -and
+        $_.TimeCreated -le $EndTime.AddSeconds(2) -and
+        ($_.Properties[5].Value -eq $TargetUser -or $_.Message -match $TargetUser)
     })
 
-    $runMetadata.ObservedFailures = $detectedFailures.Count
-    Write-Host "[+] Programmatic Verification: Found $($detectedFailures.Count) matching Event 4625 records in Security.evtx." -ForegroundColor Green
+    $runMetadata.FailuresObserved = $detectedFailures.Count
+    Write-Host "[+] Programmatic Verification: Found $($detectedFailures.Count) matching Event 4625 records in Security.evtx within execution window." -ForegroundColor Green
 
     if ($TriggerSuccess) {
         $detectedSuccess = @(Get-WinEvent -FilterHashtable @{
             LogName   = "Security"
             Id        = 4624
-            StartTime = $StartTime.AddSeconds(-2)
+            StartTime = $queryStartTime
+            EndTime   = $queryEndTime
         } -ErrorAction Stop | Where-Object {
-            $_.Properties[5].Value -eq $TargetUser -or $_.Message -match $TargetUser
+            $_.TimeCreated -ge $StartTime.AddMilliseconds(-500) -and
+            $_.TimeCreated -le $EndTime.AddSeconds(2) -and
+            ($_.Properties[5].Value -eq $TargetUser -or $_.Message -match $TargetUser)
         })
-        $runMetadata.ObservedSuccess = $detectedSuccess.Count
-        Write-Host "[+] Programmatic Verification: Found $($detectedSuccess.Count) matching Event 4624 records in Security.evtx." -ForegroundColor Green
+        $runMetadata.SuccessObserved = $detectedSuccess.Count
+        Write-Host "[+] Programmatic Verification: Found $($detectedSuccess.Count) matching Event 4624 records in Security.evtx within execution window." -ForegroundColor Green
     } else {
-        $runMetadata.ObservedSuccess = 0
+        $detectedSuccess = @()
+        $runMetadata.SuccessObserved = 0
     }
 
-    if ($runMetadata.ObservedFailures -eq $runMetadata.FailuresRequested) {
+    # Extract event attributes including RecordId for auditable evidence provenance
+    $observedRecords = @()
+    foreach ($evt in ($detectedFailures + $detectedSuccess)) {
+        [xml]$evtXml = $evt.ToXml()
+        $dataNodes = $evtXml.Event.EventData.Data
+        $extractedUser = ($dataNodes | Where-Object { $_.Name -eq 'TargetUserName' }).'#text'
+        $extractedLogonType = ($dataNodes | Where-Object { $_.Name -eq 'LogonType' }).'#text'
+
+        $observedRecords += [ordered]@{
+            RecordId       = $evt.RecordId
+            EventID        = $evt.Id
+            TimeCreated    = $evt.TimeCreated.ToString("o")
+            TargetUserName = $extractedUser
+            LogonType      = $extractedLogonType
+        }
+    }
+    $runMetadata.ObservedEvents = $observedRecords
+
+    # Strict multi-factor verification asserting requested == emitted == observed for both failure and success
+    $failuresMatch = ($runMetadata.FailuresRequested -eq $runMetadata.FailuresEmitted) -and 
+                     ($runMetadata.FailuresEmitted -eq $runMetadata.FailuresObserved)
+
+    if ($TriggerSuccess) {
+        $successMatch = ($runMetadata.SuccessRequested -eq 1) -and 
+                        ($runMetadata.SuccessEmitted -eq 1) -and 
+                        ($runMetadata.SuccessObserved -eq 1)
+    } else {
+        $successMatch = ($runMetadata.SuccessRequested -eq 0) -and 
+                        ($runMetadata.SuccessEmitted -eq 0) -and 
+                        ($runMetadata.SuccessObserved -eq 0)
+    }
+
+    if ($failuresMatch -and $successMatch) {
         $runMetadata.VerificationState = "VERIFIED_ACCURATE"
     } else {
         $runMetadata.VerificationState = "DISCREPANCY_DETECTED"
     }
-} catch [System.UnauthorizedAccessException] {
-    Write-Host "[!] Notice: Security.evtx read access requires Administrator privilege." -ForegroundColor Yellow
-    Write-Host "    Telemetry generation succeeded at LSASS API boundary (Win32 Error 1326 observed)." -ForegroundColor DarkGray
-    Write-Host "    Run in elevated session or execute inspect-auth-events.ps1 to verify raw event records." -ForegroundColor DarkGray
-    $runMetadata.VerificationState = "API_EMITTED_LOG_READ_RESTRICTED"
 } catch {
-    if ($_.Exception.Message -match "No events were found") {
-        $runMetadata.ObservedFailures = 0
+    if (($_.Exception -is [System.UnauthorizedAccessException]) -or ($_.Exception.Message -match "unauthorized")) {
+        Write-Host "[!] Notice: Security.evtx read access requires Administrator privilege." -ForegroundColor Yellow
+        Write-Host "    Telemetry generation executed at LSASS API boundary (Win32 Error 1326 observed)." -ForegroundColor DarkGray
+        Write-Host "    Run in elevated session or execute inspect-auth-events.ps1 to verify raw event records." -ForegroundColor DarkGray
+        $runMetadata.VerificationState = "API_EMITTED_LOG_READ_RESTRICTED"
+    } elseif ($_.Exception.Message -match "No events were found") {
+        $runMetadata.FailuresObserved = 0
+        $runMetadata.SuccessObserved = 0
         $runMetadata.VerificationState = "NO_EVENTS_FOUND_IN_WINDOW"
         Write-Warning "No matching events found in Security.evtx within the query time window."
     } else {
@@ -203,15 +252,21 @@ try {
     }
 }
 
-
 Write-Host "`n----------------------------------------------------------" -ForegroundColor DarkGray
 Write-Host "Execution Summary:" -ForegroundColor Cyan
 Write-Host "  Run ID             : $($runMetadata.RunId)" -ForegroundColor White
 Write-Host "  Test Case ID       : $($runMetadata.TestCaseId)" -ForegroundColor White
+Write-Host "  Failures Requested : $($runMetadata.FailuresRequested)" -ForegroundColor White
 Write-Host "  Failures Emitted   : $($runMetadata.FailuresEmitted)" -ForegroundColor White
-Write-Host "  Observed in EVTX   : $($runMetadata.ObservedFailures)" -ForegroundColor White
+Write-Host "  Failures Observed  : $($runMetadata.FailuresObserved)" -ForegroundColor White
+Write-Host "  Success Requested  : $($runMetadata.SuccessRequested)" -ForegroundColor White
 Write-Host "  Success Emitted    : $($runMetadata.SuccessEmitted)" -ForegroundColor White
+Write-Host "  Success Observed   : $($runMetadata.SuccessObserved)" -ForegroundColor White
 Write-Host "  Verification State : $($runMetadata.VerificationState)" -ForegroundColor White
+if ($runMetadata.ObservedEvents.Count -gt 0) {
+    $ids = ($runMetadata.ObservedEvents | ForEach-Object { "$($_.EventID)(Record#$($_.RecordId))" }) -join ', '
+    Write-Host "  Observed Records   : $ids" -ForegroundColor White
+}
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 return $runMetadata

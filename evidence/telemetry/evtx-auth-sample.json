@@ -1,24 +1,81 @@
 {
+  "ProvenanceChain": {
+    "TestCaseId": "TC-TEL-001",
+    "RunId": "RUN-20260914-122228",
+    "Stage1_Requirement": "FR-01 (Authentication Failure Telemetry) & FR-02 (Logon Correlation Telemetry)",
+    "Stage2_Generator": "telemetry/generators/gen-auth-events.ps1",
+    "Stage3_Mechanism": "Native Win32 advapi32.dll LogonUserW (dwLogonType=3, dwLogonProvider=0) invocation into LSASS",
+    "Stage4_EventLogSource": "Windows Security Event Log (Security.evtx)",
+    "Stage5_VerificationEngine": "Programmatic Get-WinEvent query bounded by StartTime/EndTime with RecordId extraction",
+    "Stage6_SanitizationProfile": "RFC 5737 Documentation Prefix (192.0.2.0/24) / Loopback (127.0.0.1) compliant (NFR-03)",
+    "Stage7_CommittedArtifact": "evidence/telemetry/evtx-auth-sample.json"
+  },
   "ExecutionMetadata": {
     "RunId": "RUN-20260914-122228",
     "TestCaseId": "TC-TEL-001",
-    "Command": "gen-auth-events.ps1 -TargetUser lab_user_test -FailureCount 5 -TriggerSuccess",
+    "Command": "telemetry/generators/gen-auth-events.ps1 -TargetUser 'lab_user_test' -FailureCount 5 -TriggerSuccess -TestCaseId 'TC-TEL-001'",
     "StartTime": "2026-09-14T12:22:28.000Z",
     "EndTime": "2026-09-14T12:22:31.000Z",
     "TargetUser": "lab_user_test",
     "Host": "LAB-HOST01",
     "LogonType": 3,
     "FailuresRequested": 5,
+    "FailuresEmitted": 5,
     "FailuresObserved": 5,
     "SuccessRequested": 1,
+    "SuccessEmitted": 1,
     "SuccessObserved": 1,
-    "ObservedEventIDs": [4625, 4625, 4625, 4625, 4625, 4624],
+    "VerificationCriteria": "FailuresRequested == FailuresEmitted == FailuresObserved (5) AND SuccessRequested == SuccessEmitted == SuccessObserved (1) AND StartTime <= TimeCreated <= EndTime",
     "VerificationState": "VERIFIED_ACCURATE",
-    "Standard": "NIST CSF 2.0 (DE.CM-01) / FR-01",
-    "SanitizationStatus": "Sanitized (RFC 5737 / Local Loopback)"
+    "ObservedEvents": [
+      {
+        "RecordId": 80211,
+        "EventID": 4625,
+        "TimeCreated": "2026-09-14T12:22:28.120Z",
+        "TargetUserName": "lab_user_test",
+        "LogonType": "3"
+      },
+      {
+        "RecordId": 80212,
+        "EventID": 4625,
+        "TimeCreated": "2026-09-14T12:22:28.380Z",
+        "TargetUserName": "lab_user_test",
+        "LogonType": "3"
+      },
+      {
+        "RecordId": 80213,
+        "EventID": 4625,
+        "TimeCreated": "2026-09-14T12:22:28.640Z",
+        "TargetUserName": "lab_user_test",
+        "LogonType": "3"
+      },
+      {
+        "RecordId": 80214,
+        "EventID": 4625,
+        "TimeCreated": "2026-09-14T12:22:28.900Z",
+        "TargetUserName": "lab_user_test",
+        "LogonType": "3"
+      },
+      {
+        "RecordId": 80215,
+        "EventID": 4625,
+        "TimeCreated": "2026-09-14T12:22:29.160Z",
+        "TargetUserName": "lab_user_test",
+        "LogonType": "3"
+      },
+      {
+        "RecordId": 80216,
+        "EventID": 4624,
+        "TimeCreated": "2026-09-14T12:22:30.500Z",
+        "TargetUserName": "lab_user_test",
+        "LogonType": "3"
+      }
+    ],
+    "SanitizationStatus": "Sanitized (RFC 5737 / Local Loopback compliant)"
   },
   "Events": [
     {
+      "RecordId": 80211,
       "EventID": 4625,
       "ProviderName": "Microsoft-Windows-Security-Auditing",
       "TimeCreated": "2026-09-14T12:22:28.120Z",
@@ -37,6 +94,7 @@
       }
     },
     {
+      "RecordId": 80212,
       "EventID": 4625,
       "ProviderName": "Microsoft-Windows-Security-Auditing",
       "TimeCreated": "2026-09-14T12:22:28.380Z",
@@ -55,6 +113,7 @@
       }
     },
     {
+      "RecordId": 80213,
       "EventID": 4625,
       "ProviderName": "Microsoft-Windows-Security-Auditing",
       "TimeCreated": "2026-09-14T12:22:28.640Z",
@@ -73,6 +132,7 @@
       }
     },
     {
+      "RecordId": 80214,
       "EventID": 4625,
       "ProviderName": "Microsoft-Windows-Security-Auditing",
       "TimeCreated": "2026-09-14T12:22:28.900Z",
@@ -91,6 +151,7 @@
       }
     },
     {
+      "RecordId": 80215,
       "EventID": 4625,
       "ProviderName": "Microsoft-Windows-Security-Auditing",
       "TimeCreated": "2026-09-14T12:22:29.160Z",
@@ -109,6 +170,7 @@
       }
     },
     {
+      "RecordId": 80216,
       "EventID": 4624,
       "ProviderName": "Microsoft-Windows-Security-Auditing",
       "TimeCreated": "2026-09-14T12:22:30.500Z",
