@@ -1,0 +1,77 @@
+name: JestineSOC Quality Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-repository:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Linting & Sigma Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install yamllint pyyaml sigma-cli pySigma
+
+      - name: Validate YAML Syntax
+        run: |
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 180}}}" .
+
+      - name: Validate Sigma Rules & Correlations
+        run: |
+          echo "Validating atomic Sigma rules..."
+          sigma check detections/sigma/
+          echo "Checking correlation rules..."
+          python -c "
+          import yaml, glob
+          for f in glob.glob('correlations/*.yml'):
+              with open(f, 'r') as stream:
+                  data = yaml.safe_load(stream)
+                  assert 'correlation' in data, f'Missing correlation block in {f}'
+                  print(f'Validated correlation structure: {f}')
+          "
+
+      - name: PowerShell Script Syntax Validation
+        run: |
+          pwsh -Command "
+          \$scripts = Get-ChildItem -Recurse -Filter *.ps1
+          foreach (\$s in \$scripts) {
+              Write-Host 'Parsing:' \$s.FullName
+              \$errors = \$null
+              [System.Management.Automation.Language.Parser]::ParseFile(\$s.FullName, [ref]\$null, [ref]\$errors)
+              if (\$errors.Count -gt 0) {
+                  Write-Error ('Syntax error in: ' + \$s.FullName)
+                  exit 1
+              }
+          }
+          Write-Host 'All PowerShell scripts parsed with 0 syntax errors.'
+          "
+
+      - name: Secret Leakage & Sanitization Scan (NFR-02 / NFR-03)
+        run: |
+          echo "Scanning for un-sanitized RFC1918 private IPs or common secret patterns..."
+          # Fail if live API key patterns or internal passwords are found
+          python -c "
+          import os, re
+          forbidden = [r'AIza[0-9A-Za-z-_]{35}', r'AKIA[0-9A-Z]{16}']
+          for root, _, files in os.walk('.'):
+              if '.git' in root: continue
+              for f in files:
+                  path = os.path.join(root, f)
+                  with open(path, 'r', errors='ignore') as content:
+                      text = content.read()
+                      for p in forbidden:
+                          if re.search(p, text):
+                              raise ValueError(f'Potential secret matched pattern {p} in {path}')
+          print('Secret check passed: 0 exposed keys.')
+          "

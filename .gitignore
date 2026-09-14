@@ -1,0 +1,24 @@
+# JestineSOC .gitignore
+
+# Python virtual environment & caches
+.venv/
+env/
+__pycache__/
+*.py[cod]
+
+# OS generated files
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Local sensitive files & active secrets
+*.pem
+*.key
+*.pfx
+secrets.env
+.env
+
+# Raw local crash dumps or heavy local logs
+*.dmp
+*.evtx.raw
+local_test_output/
