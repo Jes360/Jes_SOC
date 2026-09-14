@@ -29,38 +29,47 @@ jobs:
 
       - name: Validate Sigma Rules & Correlations
         run: |
-          echo "Validating atomic Sigma rules..."
-          sigma check detections/sigma/
-          echo "Checking correlation rules..."
+          echo "Checking for atomic Sigma rules in detections/sigma/..."
+          if ls detections/sigma/*.yml 1> /dev/null 2>&1; then
+            echo "Validating atomic Sigma rules with sigma-cli..."
+            sigma check detections/sigma/
+          else
+            echo "[Phase Note] detections/sigma/ contains no .yml files yet (Phase 1 Baseline). Skipping until Phase 2."
+          fi
+          echo "Checking for correlation rules in correlations/..."
           python -c "
           import yaml, glob
-          for f in glob.glob('correlations/*.yml'):
-              with open(f, 'r') as stream:
-                  data = yaml.safe_load(stream)
-                  assert 'correlation' in data, f'Missing correlation block in {f}'
-                  print(f'Validated correlation structure: {f}')
+          rules = glob.glob('correlations/*.yml')
+          if rules:
+              for f in rules:
+                  with open(f, 'r') as stream:
+                      data = yaml.safe_load(stream)
+                      assert 'correlation' in data, f'Missing correlation block in {f}'
+                      print(f'Validated correlation structure: {f}')
+          else:
+              print('[Phase Note] correlations/ contains no .yml files yet. Skipping until Phase 2.')
           "
 
       - name: PowerShell Script Syntax Validation
+        shell: pwsh
         run: |
-          pwsh -Command "
-          \$scripts = Get-ChildItem -Recurse -Filter *.ps1
-          foreach (\$s in \$scripts) {
-              Write-Host 'Parsing:' \$s.FullName
-              \$errors = \$null
-              [System.Management.Automation.Language.Parser]::ParseFile(\$s.FullName, [ref]\$null, [ref]\$errors)
-              if (\$errors.Count -gt 0) {
-                  Write-Error ('Syntax error in: ' + \$s.FullName)
+          $scripts = Get-ChildItem -Recurse -Filter *.ps1
+          foreach ($s in $scripts) {
+              Write-Host "Parsing: $($s.FullName)"
+              $errors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile($s.FullName, [ref]$null, [ref]$errors)
+              if ($errors.Count -gt 0) {
+                  Write-Error "Syntax error in: $($s.FullName)"
                   exit 1
               }
           }
-          Write-Host 'All PowerShell scripts parsed with 0 syntax errors.'
-          "
+          Write-Host "All PowerShell scripts parsed with 0 syntax errors."
 
       - name: Secret Leakage Scan (NFR-02 - TruffleHog OSS)
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@4b7d1d3a6827691637eff750b6482042e06462d0 # pinned immutable commit SHA
         with:
           extra_args: --only-verified=false
+
 
       - name: Evidence Sanitization Scan (NFR-03)
         run: |

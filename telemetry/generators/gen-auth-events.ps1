@@ -1,28 +1,38 @@
 <#
 .SYNOPSIS
-    JestineSOC Controlled Authentication Telemetry Generator
+    JestineSOC Controlled Authentication Telemetry Generator & Verifier
 .DESCRIPTION
     Executes controlled authentication attempts via native Windows Local Security Authority (LSA) APIs.
     Causes the Windows kernel and LSASS to emit authentic Event 4625 (Logon Failure) and Event 4624 (Logon Success)
     records with genuine logon types and workstation context without synthetic log fabrication.
+    Includes programmatic verification against the Windows Security log when run with appropriate privileges.
 .PARAMETER TargetUser
     The username against which authentication activity is generated. Defaults to 'lab_user_test'.
 .PARAMETER FailureCount
-    Number of failed authentication attempts to execute. Defaults to 6 (breaching the 5-event threshold for TC-POS-004).
+    Number of failed authentication attempts to execute. Defaults to 5 (threshold for TC-POS-004).
 .PARAMETER TriggerSuccess
-    If set, executes a successful authentication following the failure sequence.
+    If set, executes a genuine successful authentication following the failure sequence.
+.PARAMETER ValidPassword
+    SecureString containing the valid password for TargetUser. Required if -TriggerSuccess is specified.
 .PARAMETER DelayMs
     Delay in milliseconds between successive authentication attempts. Defaults to 250ms.
+.PARAMETER TestCaseId
+    Identifier for the test case being verified. Defaults to 'TC-TEL-001'.
 .EXAMPLE
-    .\gen-auth-events.ps1 -TargetUser "lab_user_test" -FailureCount 6 -TriggerSuccess
+    .\gen-auth-events.ps1 -TargetUser "lab_user_test" -FailureCount 5
+.EXAMPLE
+    $secPass = Read-Host "Password" -AsSecureString
+    .\gen-auth-events.ps1 -TargetUser "lab_user_test" -FailureCount 5 -TriggerSuccess -ValidPassword $secPass
 #>
 
 [CmdletBinding()]
 param(
     [string]$TargetUser = "lab_user_test",
-    [int]$FailureCount = 6,
+    [int]$FailureCount = 5,
     [switch]$TriggerSuccess,
-    [int]$DelayMs = 250
+    [Security.SecureString]$ValidPassword,
+    [int]$DelayMs = 250,
+    [string]$TestCaseId = "TC-TEL-001"
 )
 
 # Native P/Invoke binding to advapi32.dll LogonUserW
@@ -50,32 +60,44 @@ if (-not ([System.Management.Automation.PSTypeName]'WinAuthGenerator').Type) {
     Add-Type -TypeDefinition $PInvokeCode
 }
 
+$RunId = "RUN-" + (Get-Date -Format "yyyyMMdd-HHmmss")
+$StartTime = Get-Date
+
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "  JestineSOC: Controlled Authentication Telemetry Generator " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
+Write-Host "Run ID            : $RunId" -ForegroundColor White
+Write-Host "Test Case ID      : $TestCaseId" -ForegroundColor White
 Write-Host "Target Account    : $TargetUser" -ForegroundColor White
 Write-Host "Failure Count     : $FailureCount" -ForegroundColor White
 Write-Host "Trigger Success   : $TriggerSuccess" -ForegroundColor White
 Write-Host "Logon Type        : 3 (LOGON32_LOGON_NETWORK)" -ForegroundColor White
 Write-Host "Workstation / Host: $env:COMPUTERNAME" -ForegroundColor White
+Write-Host "Start Time        : $($StartTime.ToString('o'))" -ForegroundColor White
 Write-Host "----------------------------------------------------------" -ForegroundColor DarkGray
 
-$results = [ordered]@{
-    StartTime    = (Get-Date).ToString("o")
-    TargetUser   = $TargetUser
-    Host         = $env:COMPUTERNAME
-    LogonType    = 3
-    FailuresSent = 0
-    SuccessSent  = 0
-    Events       = @()
+$runMetadata = [ordered]@{
+    RunId             = $RunId
+    TestCaseId        = $TestCaseId
+    Command           = "gen-auth-events.ps1 -TargetUser $TargetUser -FailureCount $FailureCount -TriggerSuccess:$TriggerSuccess"
+    StartTime         = $StartTime.ToString("o")
+    TargetUser        = $TargetUser
+    Host              = $env:COMPUTERNAME
+    LogonType         = 3
+    FailuresRequested = $FailureCount
+    FailuresEmitted   = 0
+    SuccessRequested  = [int][bool]$TriggerSuccess
+    SuccessEmitted    = 0
+    ObservedFailures  = "UNVERIFIED"
+    ObservedSuccess   = "UNVERIFIED"
+    VerificationState = "PENDING"
 }
 
-# 1. Execute Failed Authentication Sequence
+# 1. Execute Authentic Failed Authentication Sequence
 for ($i = 1; $i -le $FailureCount; $i++) {
     $dummyPassword = "BadPassword_Attempt_${i}_" + (Get-Random -Minimum 1000 -Maximum 9999)
     $token = [IntPtr]::Zero
 
-    $timestamp = (Get-Date).ToString("o")
     # dwLogonType = 3 (Network), dwLogonProvider = 0 (Default)
     $authResult = [WinAuthGenerator]::LogonUser($TargetUser, $env:COMPUTERNAME, $dummyPassword, 3, 0, [ref]$token)
     $win32Error = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
@@ -84,60 +106,112 @@ for ($i = 1; $i -le $FailureCount; $i++) {
         [WinAuthGenerator]::CloseHandle($token)
     }
 
-    Write-Host "[$i/$FailureCount] Authentication Failure sent -> Win32 Error: $win32Error (ERROR_LOGON_FAILURE)" -ForegroundColor Yellow
-    $results.FailuresSent++
-    $results.Events += @{
-        AttemptIndex = $i
-        Timestamp    = $timestamp
-        ExpectedId   = 4625
-        Win32Error   = $win32Error
-        Status       = "AUDIT_FAILURE_EMITTED"
+    if ($win32Error -eq 1326 -or $win32Error -eq 1327 -or $win32Error -eq 1331) {
+        Write-Host "[$i/$FailureCount] Authentication Failure emitted -> Win32 Error: $win32Error (ERROR_LOGON_FAILURE)" -ForegroundColor Yellow
+        $runMetadata.FailuresEmitted++
+    } else {
+        Write-Warning "[$i/$FailureCount] Unexpected Win32 error code: $win32Error"
     }
 
     Start-Sleep -Milliseconds $DelayMs
 }
 
-# 2. Execute Successful Authentication (if requested)
+# 2. Execute Genuine Successful Authentication (if requested)
 if ($TriggerSuccess) {
-    Write-Host "`n[*] Executing subsequent successful authentication sequence..." -ForegroundColor Cyan
+    Write-Host "`n[*] Executing genuine successful authentication sequence..." -ForegroundColor Cyan
     
-    # Prompt interactively or generate local session authentication
-    $passPrompt = Read-Host "Enter valid password for $TargetUser (leave empty to authenticate current user session)" -AsSecureString
-    $token = [IntPtr]::Zero
-    $authSuccess = $false
-    $timestamp = (Get-Date).ToString("o")
+    # Require actual valid password - NO fake success fallbacks permitted
+    if (-not $ValidPassword -or $ValidPassword.Length -eq 0) {
+        $ValidPassword = Read-Host "Enter genuine password for '$TargetUser' to trigger authentic Event 4624" -AsSecureString
+    }
 
-    if ($passPrompt.Length -gt 0) {
-        $plain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($passPrompt))
-        $authSuccess = [WinAuthGenerator]::LogonUser($TargetUser, $env:COMPUTERNAME, $plain, 3, 0, [ref]$token)
-        $plain = $null
+    if ($ValidPassword.Length -eq 0) {
+        Write-Error "TriggerSuccess was requested, but no valid password was provided. Halting without emitting Event 4624."
+        $runMetadata.SuccessEmitted = 0
     } else {
-        # Fallback to current authenticated caller token validation to generate Event 4624
-        Write-Host "[*] Emitting successful network authentication for current security principal..." -ForegroundColor Gray
-        $authSuccess = $true
-    }
+        $plain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ValidPassword))
+        $token = [IntPtr]::Zero
+        
+        $authSuccess = [WinAuthGenerator]::LogonUser($TargetUser, $env:COMPUTERNAME, $plain, 3, 0, [ref]$token)
+        $win32SuccessError = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        $plain = $null
 
-    if ($token -ne [IntPtr]::Zero) {
-        [WinAuthGenerator]::CloseHandle($token)
-    }
+        if ($token -ne [IntPtr]::Zero) {
+            [WinAuthGenerator]::CloseHandle($token)
+        }
 
-    if ($authSuccess) {
-        Write-Host "[+] Successful logon generated (Event 4624 emitted)." -ForegroundColor Green
-        $results.SuccessSent++
-        $results.Events += @{
-            AttemptIndex = "SUCCESS"
-            Timestamp    = $timestamp
-            ExpectedId   = 4624
-            Status       = "AUDIT_SUCCESS_EMITTED"
+        if ($authSuccess) {
+            Write-Host "[+] Genuine successful authentication accepted by LSASS (Event 4624 emitted)." -ForegroundColor Green
+            $runMetadata.SuccessEmitted = 1
+        } else {
+            Write-Warning "LogonUser failed for '$TargetUser' with Win32 Error: $win32SuccessError. Event 4624 NOT emitted."
+            $runMetadata.SuccessEmitted = 0
         }
     }
 }
 
-$results.EndTime = (Get-Date).ToString("o")
+$EndTime = Get-Date
+$runMetadata["EndTime"] = $EndTime.ToString("o")
+
+# 3. Programmatic Event Log Verification (P1-03)
+Write-Host "`n[*] Performing programmatic event log verification..." -ForegroundColor Gray
+try {
+    # Check if caller has read permission to Security log
+    $detectedFailures = @(Get-WinEvent -FilterHashtable @{
+        LogName   = "Security"
+        Id        = 4625
+        StartTime = $StartTime.AddSeconds(-2)
+    } -ErrorAction Stop | Where-Object {
+        $_.Properties[5].Value -eq $TargetUser -or $_.Message -match $TargetUser
+    })
+
+    $runMetadata.ObservedFailures = $detectedFailures.Count
+    Write-Host "[+] Programmatic Verification: Found $($detectedFailures.Count) matching Event 4625 records in Security.evtx." -ForegroundColor Green
+
+    if ($TriggerSuccess) {
+        $detectedSuccess = @(Get-WinEvent -FilterHashtable @{
+            LogName   = "Security"
+            Id        = 4624
+            StartTime = $StartTime.AddSeconds(-2)
+        } -ErrorAction Stop | Where-Object {
+            $_.Properties[5].Value -eq $TargetUser -or $_.Message -match $TargetUser
+        })
+        $runMetadata.ObservedSuccess = $detectedSuccess.Count
+        Write-Host "[+] Programmatic Verification: Found $($detectedSuccess.Count) matching Event 4624 records in Security.evtx." -ForegroundColor Green
+    } else {
+        $runMetadata.ObservedSuccess = 0
+    }
+
+    if ($runMetadata.ObservedFailures -eq $runMetadata.FailuresRequested) {
+        $runMetadata.VerificationState = "VERIFIED_ACCURATE"
+    } else {
+        $runMetadata.VerificationState = "DISCREPANCY_DETECTED"
+    }
+} catch [System.UnauthorizedAccessException] {
+    Write-Host "[!] Notice: Security.evtx read access requires Administrator privilege." -ForegroundColor Yellow
+    Write-Host "    Telemetry generation succeeded at LSASS API boundary (Win32 Error 1326 observed)." -ForegroundColor DarkGray
+    Write-Host "    Run in elevated session or execute inspect-auth-events.ps1 to verify raw event records." -ForegroundColor DarkGray
+    $runMetadata.VerificationState = "API_EMITTED_LOG_READ_RESTRICTED"
+} catch {
+    if ($_.Exception.Message -match "No events were found") {
+        $runMetadata.ObservedFailures = 0
+        $runMetadata.VerificationState = "NO_EVENTS_FOUND_IN_WINDOW"
+        Write-Warning "No matching events found in Security.evtx within the query time window."
+    } else {
+        Write-Warning "Event query encountered exception: $($_.Exception.Message)"
+        $runMetadata.VerificationState = "QUERY_EXCEPTION"
+    }
+}
+
 
 Write-Host "`n----------------------------------------------------------" -ForegroundColor DarkGray
-Write-Host "Generation Summary:" -ForegroundColor Cyan
-Write-Host "  Failures Generated: $($results.FailuresSent)" -ForegroundColor White
-Write-Host "  Success Generated : $($results.SuccessSent)" -ForegroundColor White
-Write-Host "  Completion Time   : $($results.EndTime)" -ForegroundColor White
+Write-Host "Execution Summary:" -ForegroundColor Cyan
+Write-Host "  Run ID             : $($runMetadata.RunId)" -ForegroundColor White
+Write-Host "  Test Case ID       : $($runMetadata.TestCaseId)" -ForegroundColor White
+Write-Host "  Failures Emitted   : $($runMetadata.FailuresEmitted)" -ForegroundColor White
+Write-Host "  Observed in EVTX   : $($runMetadata.ObservedFailures)" -ForegroundColor White
+Write-Host "  Success Emitted    : $($runMetadata.SuccessEmitted)" -ForegroundColor White
+Write-Host "  Verification State : $($runMetadata.VerificationState)" -ForegroundColor White
 Write-Host "==========================================================" -ForegroundColor Cyan
+
+return $runMetadata

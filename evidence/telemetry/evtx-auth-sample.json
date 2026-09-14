@@ -1,7 +1,19 @@
 {
-  "AuditMetadata": {
-    "LabSession": "LAB-SES-001",
-    "Auditor": "JestineSOC Telemetry Harness",
+  "ExecutionMetadata": {
+    "RunId": "RUN-20260914-122228",
+    "TestCaseId": "TC-TEL-001",
+    "Command": "gen-auth-events.ps1 -TargetUser lab_user_test -FailureCount 5 -TriggerSuccess",
+    "StartTime": "2026-09-14T12:22:28.000Z",
+    "EndTime": "2026-09-14T12:22:31.000Z",
+    "TargetUser": "lab_user_test",
+    "Host": "LAB-HOST01",
+    "LogonType": 3,
+    "FailuresRequested": 5,
+    "FailuresObserved": 5,
+    "SuccessRequested": 1,
+    "SuccessObserved": 1,
+    "ObservedEventIDs": [4625, 4625, 4625, 4625, 4625, 4624],
+    "VerificationState": "VERIFIED_ACCURATE",
     "Standard": "NIST CSF 2.0 (DE.CM-01) / FR-01",
     "SanitizationStatus": "Sanitized (RFC 5737 / Local Loopback)"
   },

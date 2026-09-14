@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.2.1] - 2026-09-14
+### Fixed
+- **P1-01 (CI Pipeline):** Made Sigma rule and correlation validation steps in GitHub Actions phase-aware, preventing premature failures on empty directories during Phase 1.
+- **P1-02 (Authentic 4624 Generation):** Removed synthetic branch from `telemetry/generators/gen-auth-events.ps1`; successful authentication strictly invokes Win32 `LogonUserW` with a genuine password.
+- **P1-03 (Programmatic Event Verification):** Integrated post-execution `Get-WinEvent` verification into `gen-auth-events.ps1` to assert that Security log received the expected event count.
+- **P1-04 (Evidence Metadata & Provenance):** Added structured `ExecutionMetadata` block to `evidence/telemetry/evtx-auth-sample.json` detailing RunId, TestCaseId, execution command, start/end timestamps, requested counts, and observed counts.
+- **P1-05 (Traceability Calibration):** Calibrated FR-01 and FR-02 in `docs/traceability-matrix.md` from `VALIDATED` to `IMPLEMENTED — Generator & Schema Functional; Sample Logged`, reserving `VALIDATED` for Phase 3 integration testing.
+- **P1-06 (Supply Chain Security):** Pinned `trufflesecurity/trufflehog` in `.github/workflows/validate.yml` to immutable commit SHA (`4b7d1d3a6827691637eff750b6482042e06462d0`).
+- **CI Shell Robustness:** Converted PowerShell syntax validation job step in `.github/workflows/validate.yml` to native `shell: pwsh`.
+
 ## [0.2.0] - 2026-09-14
 ### Added
 - Authored Windows Security Audit policy specification (`telemetry/windows/audit-policy.md`) detailing Events 4624, 4625, and 4688.

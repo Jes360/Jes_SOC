@@ -18,9 +18,8 @@ $$\text{FR / NFR} \iff \text{Design (DES)} \iff \text{Detection (DET)} \iff \tex
 
 | Req ID | Requirement Summary | Design Specification | Implementation File | Test Case ID | Evidence Artifact | Current Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FR-01** | Windows Authentication Telemetry (4624/4625) | `docs/data-model.md#windows-auth` | `telemetry/windows/audit-policy.md`<br>`telemetry/generators/gen-auth-events.ps1` | `TC-TEL-001` | `evidence/telemetry/evtx-auth-sample.json` | 🟢 VALIDATED — Authentic LSASS Telemetry Captured |
-| **FR-02** | Sysmon Telemetry (Events 1 & 3) | `docs/data-model.md#sysmon-schema` | `telemetry/sysmon/sysmon-config.xml` | `TC-TEL-002` | `evidence/telemetry/sysmon-sample.json` | 🟢 VALIDATED — Tuned Config & Schema Mapped |
-
+| **FR-01** | Windows Authentication Telemetry (4624/4625) | `docs/data-model.md#windows-auth` | `telemetry/windows/audit-policy.md`<br>`telemetry/generators/gen-auth-events.ps1` | `TC-TEL-001` | `evidence/telemetry/evtx-auth-sample.json` | 🟡 IMPLEMENTED — Generator & Schema Functional; Sample Logged |
+| **FR-02** | Sysmon Telemetry (Events 1 & 3) | `docs/data-model.md#sysmon-schema` | `telemetry/sysmon/sysmon-config.xml` | `TC-TEL-002` | `evidence/telemetry/sysmon-sample.json` | 🟡 IMPLEMENTED — Lab Config Formulated; Telemetry Sample Logged |
 | **FR-03** | Atomic Failed Logon Detection (Event 4625) | `docs/detection-engineering.md#det-win-001` | `detections/sigma/windows_failed_logon.yml` | `TC-POS-001`<br>`TC-NEG-001` | `evidence/detections/ev-atomic-failed-logon.log` | 🟡 Initialized |
 | **FR-04** | Brute-Force Sequence Correlation | `docs/detection-engineering.md#corr-win-001` | `correlations/mr_bruteforce_after_failures.yml` | `TC-POS-004`<br>`TC-NEG-004` | `evidence/detections/ev-bruteforce-correlation.log` | 🟡 Initialized |
 | **FR-05** | Negative Testing & FP Suppression | `docs/testing.md#negative-testing` | `tests/negative/test_bruteforce_negative.ps1` | `TC-NEG-004` | `evidence/detections/ev-neg-test-suppressed.log` | 🟡 Initialized |
@@ -36,8 +35,9 @@ $$\text{FR / NFR} \iff \text{Design (DES)} \iff \text{Detection (DET)} \iff \tex
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **NFR-01** | Workstation Reproducibility | `docs/lab-environment.md` | Clean setup script test | `docs/lab-environment.md` | 🟡 Initialized |
 | **NFR-02** | Credential & Secret Hygiene | `docs/architecture.md#security` | TruffleHog / Git pre-commit scan | `evidence/ci/trufflehog-clean.log` | 🟡 Initialized |
-| **NFR-03** | Telemetry & Evidence Sanitization | `docs/data-model.md#sanitization` | Manual & regex audit of `/evidence/` | `evidence/` directory audit | 🟠 PARTIAL — manual control exists, automated enforcement incomplete |
-| **NFR-04** | Continuous Integration Quality Gate | `docs/architecture.md#ci-cd` | GitHub Actions workflow execution | `.github/workflows/validate.yml` | 🟡 Initialized |
+| **NFR-03** | Telemetry & Evidence Sanitization | `docs/data-model.md#sanitization` | Manual & regex audit of `/evidence/` | `evidence/` directory audit | 🟠 PARTIAL — manual control exists, automated enforcement active |
+| **NFR-04** | Continuous Integration Quality Gate | `docs/architecture.md#ci-cd` | GitHub Actions workflow execution | `.github/workflows/validate.yml` | 🟡 IN PROGRESS — Phase-Aware Workflow Active |
+
 
 
 ---
