@@ -1,0 +1,33 @@
+title: Multiple Windows Network Logon Failures
+id: 5a8a0b02-1f3e-4b48-9c12-789a45612301
+status: experimental
+description: |
+    Detects Windows network authentication failures (Event 4625, LogonType 3)
+    with NTSTATUS bad password status codes (0xc000006d / 0xc000006a).
+    Intended for pairing with temporal threshold correlation to detect brute-force password guessing.
+references:
+    - https://attack.mitre.org/techniques/T1110/001/
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4625
+author: JestineSOC Detection Engineering Team
+date: 2026-09-15
+modified: 2026-09-15
+tags:
+    - attack.credential-access
+    - attack.t1110.001
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4625
+        LogonType: 3
+        Status: '0xc000006d'
+        SubStatus: '0xc000006a'
+    filter_machine_accounts:
+        TargetUserName|endswith: '$'
+    condition: selection and not filter_machine_accounts
+falsepositives:
+    - Automated service accounts with expired passwords attempting network service access
+    - Misconfigured administrative scripts or scheduled tasks retaining outdated credentials
+    - Authorized internal vulnerability scanners performing compliance auditing
+level: medium

@@ -1,0 +1,44 @@
+# ==============================================================================
+# Detection: Multiple Failed Windows Network Logons (DET-01)
+# Canonical Source: detections/sigma/windows_failed_logon.yml
+# Target Platform: Splunk Enterprise / Splunk Cloud
+# MITRE ATT&CK: T1110.001 (Credential Access: Password Guessing)
+# ==============================================================================
+#
+# ARCHITECTURAL TRANSLATION MAPPING:
+# ------------------------------------------------------------------------------
+# 1. Sigma Intent:
+#    Detect Event 4625 records with LogonType=3 and bad password status codes
+#    aggregated by target account and source IP over a 5-minute sliding window.
+#
+# 2. Splunk Implementation:
+#    Uses streamstats with time_window=5m to maintain a sliding aggregation
+#    window across events, filtering where failure_count >= 5.
+#
+# 3. Semantic Differences from Sigma:
+#    - Splunk field names: Uses 'EventCode' instead of 'EventID', and 'Logon_Type'
+#      instead of 'LogonType' per standard Splunk Windows TA (Splunk_TA_windows).
+#    - Status Codes: Splunk indexers may normalize hex to uppercase or lowercase;
+#      both casing variants ('0xc000006d' OR '0xC000006D') are matched.
+#    - Sliding vs Tumbling: streamstats provides a true sliding window identical
+#      to Sigma temporal logic, unlike 'bin _time span=5m' which creates fixed blocks.
+#
+# 4. Fields Assumed Present:
+#    - TargetUserName (Account name)
+#    - IpAddress or src_ip (Network source)
+#    - WorkstationName (Source host)
+#    - Computer (Target system)
+#
+# 5. Operational & Performance Limitations:
+#    - streamstats requires in-memory state tracking for active combinations of
+#      (TargetUserName, IpAddress, Computer). In high-throughput enterprise
+#      environments, consider bounding with 'earliest=-15m latest=now'.
+# ==============================================================================
+
+index=security sourcetype="WinEventLog:Security" EventCode=4625 Logon_Type=3
+    (Status="0xc000006d" OR Status="0xC000006D")
+    (SubStatus="0xc000006a" OR SubStatus="0xC000006A")
+    NOT TargetUserName="*$"
+| streamstats time_window=5m count as failure_count by TargetUserName, IpAddress, Computer
+| where failure_count >= 5
+| fields _time, TargetUserName, IpAddress, WorkstationName, Computer, failure_count, Status, SubStatus

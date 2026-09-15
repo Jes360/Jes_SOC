@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.3.0-det01] - 2026-09-15
+### Added
+- **DET-01 Specification:** Authored complete 23-section detection specification `docs/detections/DET-01-windows-failed-logon.md` detailing the password-guessing analytic hypothesis, threshold rationale, 5 SOC investigation questions, and MITRE `T1110.001` mapping.
+- **Canonical Sigma Rule:** Created `detections/sigma/windows_failed_logon.yml` targeting Windows Event 4625 (LogonType 3, status `0xc000006d` / substatus `0xc000006a`) with machine-account exclusion filters.
+- **Derived SIEM Translations:** Developed `detections/splunk/windows_failed_logon.spl` and `detections/kql/windows_failed_logon.kql` with comprehensive architectural translation headers and documented semantic divergences (sliding vs tumbling windows).
+- **Automated Test Harnesses:** Built positive attack simulation harness `tests/positive/test_failed_logon_positive.ps1` (`TC-POS-001`) and negative benign suppression harness `tests/negative/test_failed_logon_negative.ps1` (`TC-NEG-001`).
+- **Empirical Evidence Artifacts:** Generated and committed sanitized execution evidence `evidence/detections/ev-det-01-positive.json` and `evidence/detections/ev-det-01-negative.json`.
+- **Traceability Updates:** Mapped `FR-03` and `T1110.001` in `docs/traceability-matrix.md` to `IMPLEMENTED` with linked test harnesses and evidence.
+
 ## [0.3.0-gate0] - 2026-09-15
 ### Added
 - **Phase 2 Gate 0 Architecture:** Established canonical 23-section Detection Specification Template (`docs/templates/detection-spec-template.md`) mandating threat hypotheses, explicit non-claims, 4-dimensional correlation keys, and empirical positive/negative testing fields.

@@ -20,7 +20,7 @@ $$\text{FR / NFR} \iff \text{Design (DES)} \iff \text{Detection (DET)} \iff \tex
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **FR-01** | Windows Authentication Telemetry (4624/4625) | `docs/data-model.md#windows-auth` | `telemetry/windows/audit-policy.md`<br>`telemetry/generators/gen-auth-events.ps1` | `TC-TEL-001` | `evidence/telemetry/evtx-auth-sample.json` | 🟡 IMPLEMENTED — Generator & Schema Functional; Sample Logged |
 | **FR-02** | Sysmon Telemetry (Events 1 & 3) | `docs/data-model.md#sysmon-schema` | `telemetry/sysmon/sysmon-config.xml` | `TC-TEL-002` | `evidence/telemetry/sysmon-sample.json` | 🟡 IMPLEMENTED — Lab Config Formulated; Telemetry Sample Logged |
-| **FR-03** | Atomic Failed Logon Detection (Event 4625) | `docs/templates/detection-spec-template.md`<br>`docs/detection-engineering.md` | `detections/sigma/windows_failed_logon.yml` | `TC-POS-001`<br>`TC-NEG-001` | `evidence/detections/ev-atomic-failed-logon.log` | 🟡 Gate 0 Spec Formulated; Implementation Pending |
+| **FR-03** | Atomic Failed Logon Detection (Event 4625) | `docs/detections/DET-01-windows-failed-logon.md` | `detections/sigma/windows_failed_logon.yml`<br>`detections/splunk/windows_failed_logon.spl`<br>`detections/kql/windows_failed_logon.kql` | `TC-POS-001`<br>`TC-NEG-001` | `evidence/detections/ev-det-01-positive.json`<br>`evidence/detections/ev-det-01-negative.json` | 🟡 IMPLEMENTED — Canonical Sigma, Translations & Test Harness Built |
 | **FR-04** | Brute-Force Sequence Correlation | `docs/templates/detection-spec-template.md`<br>`docs/detection-engineering.md` | `correlations/mr_bruteforce_after_failures.yml` | `TC-POS-004`<br>`TC-NEG-004` | `evidence/detections/ev-bruteforce-correlation.log` | 🟡 Gate 0 Spec Formulated; 4D Grouping Key Defined |
 | **FR-05** | Negative Testing & FP Suppression | `docs/testing.md#negative-testing` | `tests/negative/test_bruteforce_negative.ps1` | `TC-NEG-004` | `evidence/detections/ev-neg-test-suppressed.log` | 🟡 Initialized |
 | **FR-06** | MITRE ATT&CK Mapping & Provenance | `docs/threat-model.md#technique-matrix` | `detections/sigma/*.yml` (metadata blocks) | `TC-AUD-001` | `docs/traceability-matrix.md#mitre-coverage` | 🟡 Initialized |
@@ -46,7 +46,7 @@ $$\text{FR / NFR} \iff \text{Design (DES)} \iff \text{Detection (DET)} \iff \tex
 
 | MITRE ID | Technique Name | Tactic | Implemented In | Test Case ID | Validation Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **T1110.001** | Brute Force: Password Guessing | Credential Access | `detections/sigma/windows_failed_logon.yml`<br>`correlations/mr_bruteforce_after_failures.yml` | `TC-POS-004`<br>`TC-NEG-004` | 🟡 Initialized |
+| **T1110.001** | Brute Force: Password Guessing | Credential Access | `detections/sigma/windows_failed_logon.yml`<br>`correlations/mr_bruteforce_after_failures.yml` | `TC-POS-001`<br>`TC-NEG-001` | 🟡 IMPLEMENTED — Positive & Negative Test Harnesses Functional |
 | **T1078.003** | Valid Accounts: Local Accounts | Initial Access / Persistence | `detections/sigma/windows_successful_logon.yml` | `TC-POS-001` | 🟡 Initialized |
 | **T1059.001** | Command & Scripting Interpreter: PowerShell | Execution | `detections/sigma/windows_suspicious_powershell.yml` | `TC-POS-002` | 🟡 Initialized |
 | **T1021.002** | Remote Services: SMB/Windows Admin Shares | Lateral Movement | `detections/sigma/windows_abnormal_logon_type.yml` | `TC-POS-003` | 🟡 Initialized |

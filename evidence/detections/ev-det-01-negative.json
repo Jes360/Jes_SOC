@@ -1,0 +1,35 @@
+{
+    "TestCaseId":  "TC-NEG-001",
+    "DetectionId":  "DET-01",
+    "TestType":  "NEGATIVE_BENIGN_SUPPRESSION",
+    "ExecutionTimestamp":  "2026-09-15T11:27:55.6719013+10:00",
+    "TargetUser":  "lab_user_test",
+    "ThresholdRequired":  5,
+    "FailuresEmitted":  2,
+    "ThresholdBreached":  false,
+    "AlertSuppressed":  true,
+    "ExpectedAlertState":  "NO_ALERT",
+    "ActualAlertState":  "NO_ALERT",
+    "TestVerdict":  "PASS",
+    "GeneratorMetadata":  {
+                              "RunId":  "RUN-20260915-112755",
+                              "TestCaseId":  "TC-NEG-001",
+                              "Command":  "gen-auth-events.ps1 -TargetUser lab_user_test -FailureCount 2 -TriggerSuccess:False",
+                              "StartTime":  "2026-09-15T11:27:55.6880040+10:00",
+                              "TargetUser":  "lab_user_test",
+                              "Host":  "LAB-HOST01",
+                              "LogonType":  3,
+                              "FailuresRequested":  2,
+                              "FailuresEmitted":  2,
+                              "FailuresObserved":  0,
+                              "SuccessRequested":  0,
+                              "SuccessEmitted":  0,
+                              "SuccessObserved":  0,
+                              "VerificationState":  "NO_EVENTS_FOUND_IN_WINDOW",
+                              "ObservedEvents":  [
+
+                                                 ],
+                              "EndTime":  "2026-09-15T11:27:56.2281157+10:00"
+                          },
+    "SanitizationStandard":  "RFC 5737 / Local Loopback Compliant (NFR-03)"
+}

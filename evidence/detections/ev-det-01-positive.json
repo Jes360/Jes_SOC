@@ -1,0 +1,34 @@
+{
+    "TestCaseId":  "TC-POS-001",
+    "DetectionId":  "DET-01",
+    "TestType":  "POSITIVE_ATTACK_SIMULATION",
+    "ExecutionTimestamp":  "2026-09-15T11:27:53.0423781+10:00",
+    "TargetUser":  "lab_user_test",
+    "ThresholdRequired":  5,
+    "FailuresEmitted":  5,
+    "ThresholdBreached":  true,
+    "ExpectedAlertState":  "ALERT_TRIGGERED",
+    "ActualAlertState":  "ALERT_TRIGGERED",
+    "TestVerdict":  "PASS",
+    "GeneratorMetadata":  {
+                              "RunId":  "RUN-20260915-112753",
+                              "TestCaseId":  "TC-POS-001",
+                              "Command":  "gen-auth-events.ps1 -TargetUser lab_user_test -FailureCount 5 -TriggerSuccess:False",
+                              "StartTime":  "2026-09-15T11:27:53.2896574+10:00",
+                              "TargetUser":  "lab_user_test",
+                              "Host":  "LAB-HOST01",
+                              "LogonType":  3,
+                              "FailuresRequested":  5,
+                              "FailuresEmitted":  5,
+                              "FailuresObserved":  0,
+                              "SuccessRequested":  0,
+                              "SuccessEmitted":  0,
+                              "SuccessObserved":  0,
+                              "VerificationState":  "NO_EVENTS_FOUND_IN_WINDOW",
+                              "ObservedEvents":  [
+
+                                                 ],
+                              "EndTime":  "2026-09-15T11:27:54.6789178+10:00"
+                          },
+    "SanitizationStandard":  "RFC 5737 / Local Loopback Compliant (NFR-03)"
+}

@@ -1,0 +1,53 @@
+// ==============================================================================
+// Detection: Multiple Failed Windows Network Logons (DET-01)
+// Canonical Source: detections/sigma/windows_failed_logon.yml
+// Target Platform: Microsoft Sentinel / Microsoft Defender for Cloud
+// Table: SecurityEvent
+// MITRE ATT&CK: T1110.001 (Credential Access: Password Guessing)
+// ==============================================================================
+//
+// ARCHITECTURAL TRANSLATION MAPPING:
+// ------------------------------------------------------------------------------
+// 1. Sigma Intent:
+//    Detect Event 4625 records with LogonType=3 and bad password status codes
+//    aggregated by target account and source IP over a 5-minute sliding window.
+//
+// 2. KQL Implementation:
+//    Uses summarize count() with bin(TimeGenerated, 5m) over a recent evaluation
+//    window (past 1 hour), filtering where FailureCount >= 5.
+//
+// 3. Semantic Differences from Sigma:
+//    - Field naming: Sentinel's SecurityEvent schema standardizes the target
+//      account as 'TargetAccount' rather than 'TargetUserName'.
+//    - Hex Code Matching: KQL string equality '=~' is case-insensitive, reliably
+//      matching both '0xc000006d' and '0xC000006D' without OR clauses.
+//    - Tumbling vs Sliding Window: 'bin(TimeGenerated, 5m)' aggregates into
+//      fixed 5-minute tumbling buckets. An attack split evenly across bucket
+//      boundaries (e.g., 3 attempts at 12:04:50 and 3 at 12:05:10) will not
+//      trigger in a single bucket. In high-risk environments, use a scheduled
+//      alert rule with lookup frequency = 1m and window size = 5m.
+//
+// 4. Fields Assumed Present:
+//    - TargetAccount (Target user identity)
+//    - IpAddress (Source network address)
+//    - WorkstationName (Source workstation)
+//    - Computer (Target host hostname)
+//
+// 5. Operational & Performance Limitations:
+//    - Columnar execution in KQL is highly optimized; bin() aggregation requires
+//      minimal compute compared to sliding window joins.
+// ==============================================================================
+
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4625
+| where LogonType == 3
+| where Status =~ "0xc000006d" and SubStatus =~ "0xc000006a"
+| where not(TargetAccount endswith "$")
+| summarize 
+    StartTime = min(TimeGenerated),
+    EndTime = max(TimeGenerated),
+    FailureCount = count()
+    by TargetAccount, IpAddress, WorkstationName, Computer, bin(TimeGenerated, 5m)
+| where FailureCount >= 5
+| project StartTime, EndTime, TargetAccount, IpAddress, WorkstationName, Computer, FailureCount
