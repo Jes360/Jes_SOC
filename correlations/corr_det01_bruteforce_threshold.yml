@@ -1,0 +1,33 @@
+title: Multiple Windows Network Logon Failures (Threshold Breach)
+name: corr_det01_bruteforce_threshold
+id: 6b9b1c13-2a4f-4c59-ad23-890b56723402
+status: experimental
+description: |
+    Correlates multiple Windows network authentication failures (Event 4625, LogonType 3)
+    targeting the same account from the same source within a 5-minute sliding window.
+    Implements the canonical correlation layer for DET-01.
+references:
+    - https://attack.mitre.org/techniques/T1110/001/
+    - https://github.com/SigmaHQ/sigma-specification/blob/main/correlation-specification.md
+author: JestineSOC Detection Engineering Team
+date: 2026-09-15
+modified: 2026-09-15
+tags:
+    - attack.credential-access
+    - attack.t1110.001
+correlation:
+    type: event_count
+    rules:
+        - windows_failed_logon
+    group-by:
+        - TargetUserName
+        - IpAddress
+        - Computer
+    timespan: 5m
+    condition:
+        gte: 5
+level: high
+falsepositives:
+    - Automated service accounts with expired passwords attempting network service access
+    - Misconfigured administrative scripts or scheduled tasks retaining outdated credentials
+    - Authorized vulnerability scanners (identified by static scanner asset IP in production)

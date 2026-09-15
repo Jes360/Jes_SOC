@@ -1,9 +1,9 @@
 # DET-01: Multiple Failed Windows Network Logons (Brute-Force / Password Guessing)
 
-**Specification Version:** 1.0.0  
+**Specification Version:** 1.1.0  
 **Last Updated:** 2026-09-15  
 **Author / Engineering Lead:** JestineSOC Detection Engineering Team  
-**Lifecycle Status:** Functional (Awaiting Empirical Test Promotion to Validated)  
+**Lifecycle Status:** Validated (Empirical Boundary Testing & Backend Execution Verified)  
 
 ---
 
@@ -11,10 +11,10 @@
 
 | Specification Attribute | Value / Operational Definition |
 | :--- | :--- |
-| **1. Detection ID** | `DET-01` |
+| **1. Detection ID** | `DET-01` (Composite Architecture: `DET-01-PRIM` + `CORR-DET01`) |
 | **2. Detection Name** | Multiple Failed Windows Network Logons (Threshold Breach) |
-| **21. Maturity Level** | `Functional` (Syntax verified by `sigma check` and `yamllint`; awaiting Phase 3 test run for `Validated`) |
-| **15. Severity Rationale** | `Medium` for atomic failed logon; elevates to `High` when threshold ($\ge 5$ within 5 min) is breached; `Critical` if targeting Domain Admins or followed by successful logon (`CORR-01`) |
+| **21. Maturity Level** | `Validated` (Passed canonical syntax linting, empirical 5-case boundary test suite, and backend execution engine proof) |
+| **15. Severity Rationale** | `Medium` for atomic failed logon primitive (`DET-01-PRIM`); elevates to `High` upon threshold breach ($\ge 5$ within 5 min, `CORR-DET01`); `Critical` if targeting Domain Admins or followed by successful logon (`CORR-01`) |
 
 ---
 
@@ -34,10 +34,11 @@ Detect rapid, repeated network logon rejections targeting a single local or doma
 
 | Condition | Event Volume | Time Span | Behavioral Characteristic | Analytic Classification |
 | :--- | :--- | :--- | :--- | :--- |
-| **Single 4625** | $N = 1$ | Instant | Single authentication rejection | Ambient noise / routine typo |
-| **Repeated 4625** | $N = 2 - 3$ | Across minutes | User forgot password, retried 2 times | Benign human error (Sub-threshold) |
-| **Threshold Breach** | $N \ge 5$ | $\le 5$ minutes | Rapid repetitive programmatic attempts | **Suspicious Password Guessing (`DET-01`)** |
-| **Target Binding** | $N \ge 5$ | $\le 5$ minutes | Bound to same `TargetUserName` + `IpAddress` | Focused single-account brute-force |
+| **Single 4625** | $N = 1$ | Instant | Single authentication rejection | Ambient noise / routine typo (`TC-NEG-001`) |
+| **Sub-threshold Boundary** | $N = 4$ | $\le 5$ minutes | User retry burst below threshold | Benign retry boundary (`TC-NEG-002`) |
+| **Temporal Dilution** | $N = 5$ | $> 5$ minutes | 5 attempts spaced across $> 5$ min | Sub-threshold sliding window (`TC-NEG-003`) |
+| **Exact Threshold Breach** | $N = 5$ | $\le 5$ minutes | Rapid repetitive programmatic attempts | **Suspicious Password Guessing (`CORR-DET01` / `TC-POS-001`)** |
+| **Above-Threshold Breach** | $N \ge 6$ | $\le 5$ minutes | Sustained brute-force guessing | **Active Credential Attack (`CORR-DET01` / `TC-POS-002`)** |
 | **Sequence Breach** | $N \ge 5 \rightarrow 1 \times 4624$ | $\le 5$ minutes | Failures immediately succeeded by valid login | **Account Compromise (`CORR-01`)** |
 
 * **Why Threshold = 5 Attempts in 5 Minutes?**
@@ -53,6 +54,7 @@ Detect rapid, repeated network logon rejections targeting a single local or doma
 * **Sub-Technique ID:** `T1110.001` (Password Guessing)
 * **Technique Justification:**
   Sub-technique `T1110.001` specifies adversaries attempting many passwords against a single account to discover valid credentials. The combination of `LogonType = 3`, repetitive bad password status codes (`0xc000006a`), and rapid cadence directly aligns with this MITRE definition.
+* **Scope Note:** The ATT&CK mapping belongs strictly to the **analytic correlation hypothesis** (`CORR-DET01`), not to individual ambient Event 4625 records.
 
 ---
 
@@ -79,24 +81,48 @@ Fields mapped to `docs/data-model.md`:
 | `SubStatus` | `error.substatus` | Hex String | Must equal `0xc000006a` (`STATUS_WRONG_PASSWORD`) |
 | `WorkstationName` | `source.host.name` | String | Originating client workstation name |
 | `IpAddress` | `source.ip` | IP Address | Source IP address (or `127.0.0.1` in local loopback testing) |
+| `Computer` | `destination.host.name` | String | Target destination system name |
 | `TimeCreated` | `@timestamp` | ISO8601 | Event timestamp used for sliding window evaluation |
 
 ---
 
-## 4. Canonical Detection Logic (Sigma 2.1.0)
+## 4. Canonical Detection Architecture (Sigma 2.1.0)
 
-### 7. Canonical Sigma Rule
+To eliminate the semantic gap between atomic event filtering and temporal threshold correlation (Auditor Finding `DET01-01`), DET-01 is explicitly structured into two canonical tiers:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Tier 1: Atomic Qualifying Event Primitive (DET-01-PRIM)     │
+│  detections/sigma/windows_failed_logon.yml                  │
+│  - Filters Event 4625, LogonType 3, 0xc000006d / 0xc000006a │
+│  - Excludes machine accounts ($ suffix)                     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Qualifying Events
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Tier 2: Canonical Threshold Correlation (CORR-DET01)       │
+│  correlations/corr_det01_bruteforce_threshold.yml           │
+│  - Type: event_count                                        │
+│  - Group-by: [TargetUserName, IpAddress, Computer]          │
+│  - Timespan: 5m (300s sliding window)                       │
+│  - Condition: count >= 5                                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 7. Canonical Sigma Rule 1: Atomic Event Primitive (`DET-01-PRIM`)
 * **Rule File Location:** `detections/sigma/windows_failed_logon.yml`
 * **Specification Compliance:** Sigma Specification 2.1.0
 
 ```yaml
-title: Multiple Windows Network Logon Failures
+title: Windows Network Authentication Failure (Atomic Event Primitive)
+name: windows_failed_logon
 id: 5a8a0b02-1f3e-4b48-9c12-789a45612301
 status: experimental
 description: |
-    Detects repeated Windows network logon failures (Event 4625, LogonType 3)
-    exhibiting NTSTATUS bad password codes (0xc000006a / 0xc000006d).
-    Indicates potential online password guessing or automated brute-force attempts.
+    Matches individual Windows network authentication failure events (Event 4625, LogonType 3)
+    exhibiting NTSTATUS bad password status codes (0xc000006d / 0xc000006a).
+    Serves as the atomic detection primitive (DET-01-PRIM) referenced by threshold correlation
+    rule 'corr_det01_bruteforce_threshold' and composite correlation 'mr_bruteforce_after_failures'.
 references:
     - https://attack.mitre.org/techniques/T1110/001/
     - https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4625
@@ -119,25 +145,54 @@ detection:
         TargetUserName|endswith: '$'
     condition: selection and not filter_machine_accounts
 falsepositives:
-    - Automated service accounts with expired passwords attempting network service access
-    - Misconfigured administrative scripts or scheduled tasks retaining outdated credentials
-    - Internal vulnerability scanners performing authorized compliance checks
+    - User entering incorrect password on network resource access
+    - Service accounts with expired credentials
 level: medium
 ```
 
-### 16. Correlation & Grouping Logic
-While `windows_failed_logon.yml` represents the canonical atomic event pattern, operational alert generation requires temporal threshold aggregation:
-* **Correlation Type:** `event_count` / `temporal`
-* **Primary Grouping Dimension (Account):** `TargetUserName`
-* **Secondary Grouping Dimension (Source):** `IpAddress` AND `WorkstationName`
-* **Tertiary Grouping Dimension (Destination):** `Computer`
-* **Aggregation Window:** `timespan: 5m` (300 seconds)
-* **Threshold Condition:** `count() >= 5`
-* **Analytic Independence:** Grouping by both account and source IP prevents independent single failures across multiple disparate users from colliding into a single false-positive alert cluster.
+### 16. Canonical Sigma Rule 2: Threshold Correlation (`CORR-DET01`)
+* **Rule File Location:** `correlations/corr_det01_bruteforce_threshold.yml`
+* **Specification Compliance:** Sigma Correlation Specification 2.1.0
+
+```yaml
+title: Multiple Windows Network Logon Failures (Threshold Breach)
+name: corr_det01_bruteforce_threshold
+id: 6b9b1c13-2a4f-4c59-ad23-890b56723402
+status: experimental
+description: |
+    Correlates multiple Windows network authentication failures (Event 4625, LogonType 3)
+    targeting the same account from the same source within a 5-minute sliding window.
+    Implements the canonical correlation layer for DET-01.
+references:
+    - https://attack.mitre.org/techniques/T1110/001/
+    - https://github.com/SigmaHQ/sigma-specification/blob/main/correlation-specification.md
+author: JestineSOC Detection Engineering Team
+date: 2026-09-15
+modified: 2026-09-15
+tags:
+    - attack.credential-access
+    - attack.t1110.001
+correlation:
+    type: event_count
+    rules:
+        - windows_failed_logon
+    group-by:
+        - TargetUserName
+        - IpAddress
+        - Computer
+    timespan: 5m
+    condition:
+        gte: 5
+level: high
+falsepositives:
+    - Automated service accounts with expired passwords attempting network service access
+    - Misconfigured administrative scripts or scheduled tasks retaining outdated credentials
+    - Authorized vulnerability scanners (identified by static scanner asset IP in production)
+```
 
 ---
 
-## 5. Derived SIEM Implementations & Semantic Divergence
+## 5. Derived SIEM Implementations & Semantic Reconciliation
 
 ### 17. SPL (Splunk Search Processing Language) Translation
 * **Target Index / Sourcetype:** `index=security sourcetype=WinEventLog:Security`
@@ -145,7 +200,7 @@ While `windows_failed_logon.yml` represents the canonical atomic event pattern, 
 
 ```spl
 # Detection: Multiple Failed Windows Network Logons (DET-01)
-# Canonical Source: detections/sigma/windows_failed_logon.yml
+# Canonical Source: detections/sigma/windows_failed_logon.yml & correlations/corr_det01_bruteforce_threshold.yml
 index=security sourcetype="WinEventLog:Security" EventCode=4625 Logon_Type=3
     (Status="0xc000006d" OR Status="0xC000006D")
     (SubStatus="0xc000006a" OR SubStatus="0xC000006A")
@@ -159,9 +214,8 @@ index=security sourcetype="WinEventLog:Security" EventCode=4625 Logon_Type=3
 * **Target Table:** `SecurityEvent`
 * **Translation File:** `detections/kql/windows_failed_logon.kql`
 
+#### Approach A: High-Efficiency Tumbling Bucket (Standard Sentinel Scheduled Analytic Rule)
 ```kql
-// Detection: Multiple Failed Windows Network Logons (DET-01)
-// Canonical Source: detections/sigma/windows_failed_logon.yml
 SecurityEvent
 | where TimeGenerated >= ago(1h)
 | where EventID == 4625
@@ -177,54 +231,87 @@ SecurityEvent
 | project StartTime, EndTime, TargetAccount, IpAddress, WorkstationName, Computer, FailureCount
 ```
 
-### 19. Semantic Divergence from Sigma
-Documented behavioral differences across execution backends:
+#### Approach B: Strict 5-Minute Sliding Window (Exact Semantic Equivalence)
+```kql
+let RawFailures = SecurityEvent
+    | where TimeGenerated >= ago(1h)
+    | where EventID == 4625 and LogonType == 3
+    | where Status =~ "0xc000006d" and SubStatus =~ "0xc000006a"
+    | where not(TargetAccount endswith "$");
+RawFailures
+| join kind=inner (
+    RawFailures
+    | project JoinAccount=TargetAccount, JoinIp=IpAddress, WindowStart=TimeGenerated, WindowEnd=datetime_add('minute', 5, TimeGenerated)
+) on $left.TargetAccount == $right.JoinAccount and $left.IpAddress == $right.JoinIp
+| where TimeGenerated between (WindowStart .. WindowEnd)
+| summarize RollingCount = count() by TargetAccount, IpAddress, Computer, WindowStart, WindowEnd
+| where RollingCount >= 5
+| summarize min(WindowStart), max(WindowEnd), max(RollingCount) by TargetAccount, IpAddress, Computer
+```
 
-| Dialect Feature | Canonical Sigma 2.1.0 | Splunk SPL Implementation | Microsoft Sentinel KQL Implementation |
-| :--- | :--- | :--- | :--- |
-| **Field Naming** | `TargetUserName`, `EventID`, `LogonType` | `TargetUserName`, `EventCode`, `Logon_Type` | `TargetAccount`, `EventID`, `LogonType` |
-| **Temporal Window** | Sliding evaluation window (`timespan: 5m`) | Sliding evaluation window via `streamstats time_window=5m` | Fixed tumbling window via `bin(TimeGenerated, 5m)` |
-| **Hex Code Matching** | String comparison (`'0xc000006d'`) | Case variations required (`"0xc000006d" OR "0xC000006D"`) | Case-insensitive string operator (`=~`) |
-| **Threshold Ingestion** | Defined in correlation meta-rule | Inline aggregation (`streamstats` + `where`) | Inline aggregation (`summarize` + `bin`) |
-| **Performance Impact** | Engine-dependent | `streamstats` requires state memory across streaming events | `bin` is highly performant across partitioned columnar storage |
+### 19. Semantic Reconciliation Matrix (Resolving DET01-04)
+The following matrix resolves all dialect mappings, windowing semantics, and field equivalences across backends:
+
+| Requirement | Canonical Sigma Primitive (`DET-01-PRIM`) | Canonical Sigma Correlation (`CORR-DET01`) | Splunk SPL Translation (`streamstats`) | Microsoft Sentinel KQL (Approach A - Tumbling) | Microsoft Sentinel KQL (Approach B - Sliding) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Event 4625** | ✓ (`EventID: 4625`) | ✓ (Referenced via PRIM) | ✓ (`EventCode=4625`) | ✓ (`EventID == 4625`) | ✓ (`EventID == 4625`) |
+| **LogonType 3** | ✓ (`LogonType: 3`) | ✓ (Referenced via PRIM) | ✓ (`Logon_Type=3`) | ✓ (`LogonType == 3`) | ✓ (`LogonType == 3`) |
+| **Status / SubStatus** | ✓ (`0xc000006d` / `0xc000006a`) | ✓ (Referenced via PRIM) | ✓ (`0xc000006d` OR `0xC000006D`) | ✓ (`=~ "0xc000006d"` / `0xc000006a`) | ✓ (`=~ "0xc000006d"` / `0xc000006a`) |
+| **Same Account** | N/A (Single event match) | ✓ (`group-by: TargetUserName`) | ✓ (`by TargetUserName`) | ✓ (`by TargetAccount`) | ✓ (`by TargetAccount`) |
+| **Same Source** | N/A (Single event match) | ✓ (`group-by: IpAddress, Computer`) | ✓ (`by IpAddress, Computer`) | ✓ (`by IpAddress, Computer`) | ✓ (`by IpAddress, Computer`) |
+| **$\ge 5$ Events** | N/A (Delegated to correlation) | ✓ (`condition: gte: 5`) | ✓ (`where failure_count >= 5`) | ✓ (`where FailureCount >= 5`) | ✓ (`where RollingCount >= 5`) |
+| **5-Minute Window** | N/A (Delegated to correlation) | ✓ (`timespan: 5m`, sliding) | ✓ (`time_window=5m`, sliding) | ⚠️ Approximate (`bin(5m)`, tumbling) | ✓ (`between (WindowStart..WindowEnd)`, sliding) |
+| **Machine Account Exclusion** | ✓ (`TargetUserName\|endswith: '$'`) | ✓ (Inherited from PRIM) | ✓ (`NOT TargetUserName="*$"`) | ✓ (`not(TargetAccount endswith "$")`) | ✓ (`not(TargetAccount endswith "$")`) |
 
 ---
 
-## 6. Testing, Verification & Empirical Evidence
+## 6. Testing, Verification & Boundary Evidence
 
-### 9. Positive Test Case (Attack Simulation)
-* **Test Case ID:** `TC-POS-001`
-* **Simulation Type:** Controlled Programmatic Authentication Failure Burst
-* **Test Script:** `tests/positive/test_failed_logon_positive.ps1`
-* **Lab Execution Command:**
-  ```powershell
-  .\telemetry\generators\gen-auth-events.ps1 -TargetUser "lab_user_test" -FailureCount 5 -TestCaseId "TC-POS-001"
-  ```
-* **Simulation Safety Boundary:** Executes purely against designated local account `lab_user_test` via Win32 `LogonUserW` network logon. Does not transmit packets across the physical gateway; uses authentic LSASS rejection without modifying domain or host security posture.
+### 9. Positive Test Cases (Attack Simulation)
+* **`TC-POS-001` (Exact Threshold Breach):** 5 consecutive failed network logons executed within 120 seconds ($N=5$).
+  - Command: `.\telemetry\generators\gen-auth-events.ps1 -TargetUser "lab_user_test" -FailureCount 5 -TestCaseId "TC-POS-001"`
+  - Verification: Reaches exactly threshold 5 within 5 minutes; alert MUST fire.
+* **`TC-POS-002` (Above-Threshold Sustained Attack):** 6 consecutive failed network logons executed within 100 seconds ($N=6$).
+  - Verification: Exceeds threshold; alert MUST fire and sustain breach state.
 
-### 10. Negative Test Case (Benign Baseline / Sub-Threshold)
-* **Test Case ID:** `TC-NEG-001`
-* **Benign Operational Scenario:** Normal user mistypes their password twice within 5 minutes, representing benign human error.
-* **Test Script:** `tests/negative/test_failed_logon_negative.ps1`
-* **Lab Execution Command:**
-  ```powershell
-  .\telemetry\generators\gen-auth-events.ps1 -TargetUser "lab_user_test" -FailureCount 2 -TestCaseId "TC-NEG-001"
-  ```
-* **Boundary Condition Tested:** $N = 2$ attempts ($< 5$ threshold). Alert MUST remain silent.
+### 10. Negative Test Cases (Benign Baseline & Boundary Suppression)
+* **`TC-NEG-001` (Isolated Typo Baseline):** Single failed network logon ($N=1$).
+  - Command: `.\telemetry\generators\gen-auth-events.ps1 -TargetUser "lab_user_test" -FailureCount 1 -TestCaseId "TC-NEG-001"`
+  - Verification: Routine ambient noise; alert suppressed.
+* **`TC-NEG-002` (Immediate Boundary $N-1$):** 4 failed logons within 90 seconds ($N=4$).
+  - Verification: Exactly 1 failure below threshold ($N=4 < 5$); proves boundary cut-off; alert suppressed.
+* **`TC-NEG-003` (Temporal Dilution / Sliding Window Enforcement):** 5 failed logons spread across 400 seconds (6.67 minutes), spaced 100s apart.
+  - Verification: Even though total events = 5, the maximum count within any 300-second sliding window is 4 ($<5$); proves sliding window enforcement suppresses false alerts.
+* **`TC-NEG-004` (Machine Account Exclusion):** 5 failed logons for machine account `LAB-SRV01$`.
+  - Verification: Excluded by primitive machine account filter; alert suppressed.
+* **`TC-NEG-005` (Account Variance / Horizontal Spraying):** 5 failed logons within 60s targeting 5 distinct usernames.
+  - Verification: Grouping key `TargetUserName` isolates counts to $N=1$ per user; alert suppressed.
 
-### 11. Expected Result
-* **Positive Test (`TC-POS-001`):** Exactly 5 Event 4625 records generated. Rule threshold breached. Alert emitted with Severity = `High`, MITRE tag = `T1110.001`, target = `lab_user_test`.
-* **Negative Test (`TC-NEG-001`):** Exactly 2 Event 4625 records generated. Alert suppressed. Zero alerts emitted to analyst triage queue.
+### 11. Comprehensive Boundary Test Matrix Results (Resolving DET01-02)
+Automated execution results generated by `tests/runners/eval_det01_engine.py` and recorded in `evidence/detections/ev-det-01-boundary-matrix.json`:
 
-### 12. Actual Result
-* **Execution Status:** Functional baseline established in Phase 1 (`RUN-20260914-122228`); Phase 2 test harness automated in `tests/positive/` and `tests/negative/`.
-* **Empirical Validation Formula:** $\text{FailuresRequested} == \text{FailuresEmitted} == \text{FailuresObserved} == 5$.
+| Test ID | Case ID | Category | Event Count | Duration | Window Evaluated | Expected Alert | Actual Alert | Max Window Count | Verdict | Boundary Rationale |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| `NEG-001` | `TC-NEG-001` | Benign Baseline | 1 | 0s | 5m (300s) | `NO_ALERT` | `NO_ALERT` | 1 | ✅ PASS | Single failure represents routine mistype; sub-threshold |
+| `NEG-002` | `TC-NEG-002` | Boundary $N-1$ | 4 | 90s | 5m (300s) | `NO_ALERT` | `NO_ALERT` | 4 | ✅ PASS | Exactly 1 attempt below threshold; verifies cutoff suppression |
+| `POS-001` | `TC-POS-001` | Exact Threshold | 5 | 120s | 5m (300s) | `ALERT` | `ALERT` | 5 | ✅ PASS | Reaches threshold 5 within 5 minutes; alert fires |
+| `POS-002` | `TC-POS-002` | Above Threshold | 6 | 100s | 5m (300s) | `ALERT` | `ALERT` | 6 | ✅ PASS | Exceeds threshold 5; continuous breach recorded |
+| `NEG-003` | `TC-NEG-003` | Temporal Dilution | 5 | 400s | 5m (300s) | `NO_ALERT` | `NO_ALERT` | 4 | ✅ PASS | Total count=5, but sliding window max count=4; proves temporal constraint |
+| `NEG-004` | `TC-NEG-004` | Machine Filter | 5 | 60s | 5m (300s) | `NO_ALERT` | `NO_ALERT` | 0 | ✅ PASS | Machine accounts ($ suffix) excluded by atomic primitive filter |
+| `NEG-005` | `TC-NEG-005` | Spray / Variance | 5 | 60s | 5m (300s) | `NO_ALERT` | `NO_ALERT` | 1 | ✅ PASS | Distinct accounts isolated by `TargetUserName` grouping key |
+
+### 12. Actual Result & Backend Execution Proof (Resolving DET01-03)
+* **Backend Evaluation Engine:** `tests/runners/eval_det01_engine.py` (executed via PowerShell runner `tests/test_det01_boundary_suite.ps1`).
+* **Execution Proof Artifact:** `evidence/detections/ev-det-01-execution-proof.json` captures the full stream trace:
+  $$\text{Input Events} \longrightarrow \text{Primitive Filtering} \longrightarrow \text{Sliding Window Aggregation} \longrightarrow \text{Alert Decision} \longrightarrow \text{PASS/FAIL}$$
+* **Observed Empirical Pass Rate:** 7 / 7 test cases passed (100% boundary accuracy).
 
 ### 20. Evidence Location / Provenance Chain
-* **Seven-Stage Provenance:**
-  `TC-POS-001` $\rightarrow$ `RunId` $\rightarrow$ `gen-auth-events.ps1` $\rightarrow$ `Security.evtx` $\rightarrow$ `RecordId Extraction` $\rightarrow$ `Sanitization` $\rightarrow$ `evidence/detections/ev-det-01-positive.json`
-* **Committed Evidence Artifact:** `evidence/detections/ev-det-01-positive.json`
-* **Observed OS Record IDs:** Tracked via `ExecutionMetadata.ObservedEvents[].RecordId`.
+* **Boundary Matrix:** `evidence/detections/ev-det-01-boundary-matrix.json`
+* **Execution Proof:** `evidence/detections/ev-det-01-execution-proof.json`
+* **Positive Attack Evidence:** `evidence/detections/ev-det-01-positive.json`
+* **Negative Benign Evidence:** `evidence/detections/ev-det-01-negative.json`
+* **Raw Telemetry Provenance:** `evidence/telemetry/evtx-auth-sample.json`
 
 ---
 
@@ -236,7 +323,8 @@ Documented behavioral differences across execution backends:
    * *Mitigation / Tuning:* Exclude service account prefix naming conventions (`svc_*`) only after verifying the source process path and confirming the account is intended for non-interactive service execution.
 2. **Scenario 2 (Internal Compliance & Vulnerability Scanning):**
    * *Trigger Cause:* Authorized security tools (e.g. Nessus, Qualys) performing authenticated SMB credential auditing.
-   * *Mitigation / Tuning:* Filter by approved static scanner IP range using RFC 5737 sanitized documentation addresses in the lab.
+   * *Production Mitigation:* Identify authorized vulnerability scanners using an explicitly configured scanner IP range, subnet, or asset identity.
+   * *Evidence Sanitization Standard:* For committed evidence and lab documentation, scanner addresses are represented using RFC 5737 documentation ranges (`192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`) in accordance with NFR-03.
 3. **Scenario 3 (Orphaned Network Drive Mappings):**
    * *Trigger Cause:* Disconnected user workstation continuously attempting to remount mapped network shares using expired Kerberos/NTLM tokens.
    * *Mitigation / Tuning:* Verify whether the failures correlate with subsequent successful interactive logons (`LogonType = 2`) from the user's primary workstation.
@@ -250,8 +338,8 @@ Structured triage path for Tier-1/Tier-2 SOC analysts (aligned with NIST SP 800-
 5. **Horizontal Scope:** Did the source IP attempt authentications against other usernames on the same host or across the network (password spraying)?
 
 ### 15. Severity Rationale & Scoring Formula
-* **Base Severity:** `Medium` (Individual failed logons are routine background operational events).
-* **Elevated Severity:** `High` (When threshold of 5 failures in 5 minutes is breached, the probability of deliberate brute-force exceeds 90%).
+* **Base Severity:** `Medium` for individual failed logons.
+* **Elevated Severity:** `High` when threshold of 5 failures in 5 minutes is breached (`CORR-DET01`), as the probability of deliberate brute-force exceeds 90%.
 * **Critical Escalation Trigger:** Automatically elevate to `Critical` if:
   1. `TargetUserName` is a Domain Admin, Enterprise Admin, or Local Administrator; OR
   2. The failed logon burst is followed within 5 minutes by a successful authentication (`CORR-01`).
@@ -267,11 +355,13 @@ Structured triage path for Tier-1/Tier-2 SOC analysts (aligned with NIST SP 800-
 
 ### 23. Acceptance Criteria
 - [x] Canonical 23-section detection specification authored and reviewed.
-- [x] Canonical Sigma rule `windows_failed_logon.yml` passes `sigma check` with 0 errors.
+- [x] Canonical Sigma rule `windows_failed_logon.yml` (`DET-01-PRIM`) passes `sigma check` with 0 errors.
+- [x] Canonical Sigma correlation rule `corr_det01_bruteforce_threshold.yml` (`CORR-DET01`) complies with Sigma Correlation Specification 2.1.0.
 - [x] Rule YAML complies with `yamllint` configuration.
-- [x] Positive test script `test_failed_logon_positive.ps1` executes and verifies 5 failed logon events.
-- [x] Negative test script `test_failed_logon_negative.ps1` executes and verifies sub-threshold suppression (2 events).
-- [x] Derived SPL translation authored with documented sliding-window divergence.
-- [x] Derived KQL translation authored with documented tumbling-window divergence.
-- [x] Raw evidence JSON captured with OS `RecordId` mapping and committed to `evidence/detections/`.
-- [x] Traceability matrix updated mapping `FR-03` to `DET-01`.
+- [x] Boundary suite `tests/test_det01_boundary_suite.ps1` executes all 5 boundary conditions plus controls ($N=1, 4, 5, 6, >5\text{m}$) with 100% pass rate.
+- [x] Backend evaluation engine `tests/runners/eval_det01_engine.py` executes and outputs verified stream proof.
+- [x] Derived SPL translation authored with documented `streamstats` sliding-window equivalence.
+- [x] Derived KQL translations authored documenting Approach A tumbling vs Approach B sliding windows.
+- [x] Semantic Reconciliation Matrix resolves all dialect mappings, window types, and field equivalences.
+- [x] Raw evidence JSON captured and committed to `evidence/detections/ev-det-01-boundary-matrix.json` and `ev-det-01-execution-proof.json`.
+- [x] Traceability matrix updated mapping `FR-03` to `DET-01-PRIM` and `CORR-DET01`.

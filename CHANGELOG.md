@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.3.0-det01-closure] - 2026-09-15
+### Fixed
+- **DET01-01 (Canonical Semantic Split):** Factored DET-01 into a two-tier canonical architecture: (1) Atomic Event Primitive `DET-01-PRIM` (`detections/sigma/windows_failed_logon.yml`) and (2) Canonical Threshold Correlation `CORR-DET01` (`correlations/corr_det01_bruteforce_threshold.yml`) strictly conforming to Sigma Correlation Specification 2.1.0 (`type: event_count`, `timespan: 5m`, `condition: gte: 5`).
+- **DET01-02 (Comprehensive Boundary Test Suite):** Implemented the 5-case boundary matrix mandated by the Auditor (`NEG-001` $N=1$, `NEG-002` $N=4$, `POS-001` $N=5$, `POS-002` $N=6$, `NEG-003` $N=5$ over $>5\text{m}$) plus control cases (`NEG-004` machine account filter, `NEG-005` horizontal spray), achieving 100% boundary assertion pass rate in `tests/test_det01_boundary_suite.ps1`.
+- **DET01-03 (Backend Execution Proof):** Authored `tests/runners/eval_det01_engine.py` providing programmatic evaluation of raw event streams against canonical correlation logic, producing auditable execution proof in `evidence/detections/ev-det-01-execution-proof.json` and `ev-det-01-boundary-matrix.json`.
+- **DET01-04 (SIEM Semantic Alignment & FP Realism):** Formulated the complete Semantic Reconciliation Matrix in `docs/detections/DET-01-windows-failed-logon.md` resolving all dialect, field, and windowing mappings across Sigma, Splunk SPL (`streamstats`), and Sentinel KQL (Approach A tumbling vs Approach B sliding). Calibrated vulnerability scanner false-positive documentation to distinguish production asset identity from RFC 5737 sanitized evidence.
+
 ## [0.3.0-det01] - 2026-09-15
 ### Added
 - **DET-01 Specification:** Authored complete 23-section detection specification `docs/detections/DET-01-windows-failed-logon.md` detailing the password-guessing analytic hypothesis, threshold rationale, 5 SOC investigation questions, and MITRE `T1110.001` mapping.

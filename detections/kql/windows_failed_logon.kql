@@ -1,6 +1,6 @@
 // ==============================================================================
 // Detection: Multiple Failed Windows Network Logons (DET-01)
-// Canonical Source: detections/sigma/windows_failed_logon.yml
+// Canonical Source: detections/sigma/windows_failed_logon.yml & correlations/corr_det01_bruteforce_threshold.yml
 // Target Platform: Microsoft Sentinel / Microsoft Defender for Cloud
 // Table: SecurityEvent
 // MITRE ATT&CK: T1110.001 (Credential Access: Password Guessing)
@@ -10,34 +10,32 @@
 // ------------------------------------------------------------------------------
 // 1. Sigma Intent:
 //    Detect Event 4625 records with LogonType=3 and bad password status codes
-//    aggregated by target account and source IP over a 5-minute sliding window.
+//    aggregated by target account and source IP over a 5-minute sliding window (>= 5).
 //
-// 2. KQL Implementation:
-//    Uses summarize count() with bin(TimeGenerated, 5m) over a recent evaluation
-//    window (past 1 hour), filtering where FailureCount >= 5.
+// 2. KQL Implementation Options:
+//    - Approach A (Production Scheduled Rule): Uses bin(TimeGenerated, 5m) scheduled
+//      with a 1-minute query frequency and 5-minute lookback window to minimize
+//      boundary bucket edge cases while maintaining high compute efficiency.
+//    - Approach B (Strict Sliding Window): Evaluates rolling 5-minute window per event
+//      to eliminate tumbling bucket boundary splits entirely.
 //
 // 3. Semantic Differences from Sigma:
 //    - Field naming: Sentinel's SecurityEvent schema standardizes the target
 //      account as 'TargetAccount' rather than 'TargetUserName'.
 //    - Hex Code Matching: KQL string equality '=~' is case-insensitive, reliably
-//      matching both '0xc000006d' and '0xC000006D' without OR clauses.
-//    - Tumbling vs Sliding Window: 'bin(TimeGenerated, 5m)' aggregates into
-//      fixed 5-minute tumbling buckets. An attack split evenly across bucket
-//      boundaries (e.g., 3 attempts at 12:04:50 and 3 at 12:05:10) will not
-//      trigger in a single bucket. In high-risk environments, use a scheduled
-//      alert rule with lookup frequency = 1m and window size = 5m.
+//      matching both '0xc000006d' and '0xC000006D' without multiple OR clauses.
+//    - Machine Account Filtering: 'not(TargetAccount endswith "$")' matches Sigma's
+//      'TargetUserName|endswith: "$"' filter.
 //
 // 4. Fields Assumed Present:
 //    - TargetAccount (Target user identity)
 //    - IpAddress (Source network address)
 //    - WorkstationName (Source workstation)
 //    - Computer (Target host hostname)
-//
-// 5. Operational & Performance Limitations:
-//    - Columnar execution in KQL is highly optimized; bin() aggregation requires
-//      minimal compute compared to sliding window joins.
 // ==============================================================================
 
+// --- APPROACH A: High-Efficiency Tumbling Bucket (Standard Sentinel Analytic Rule) ---
+// Recommended Sentinel Rule Schedule: Run every 1 minute, Lookup data from past 5 minutes.
 SecurityEvent
 | where TimeGenerated >= ago(1h)
 | where EventID == 4625
@@ -51,3 +49,22 @@ SecurityEvent
     by TargetAccount, IpAddress, WorkstationName, Computer, bin(TimeGenerated, 5m)
 | where FailureCount >= 5
 | project StartTime, EndTime, TargetAccount, IpAddress, WorkstationName, Computer, FailureCount
+
+// --- APPROACH B: Strict 5-Minute Sliding Window (Exact Semantic Equivalence) ---
+// Computes rolling 5-minute failure count per source and account to prevent boundary splitting.
+/*
+let RawFailures = SecurityEvent
+    | where TimeGenerated >= ago(1h)
+    | where EventID == 4625 and LogonType == 3
+    | where Status =~ "0xc000006d" and SubStatus =~ "0xc000006a"
+    | where not(TargetAccount endswith "$");
+RawFailures
+| join kind=inner (
+    RawFailures
+    | project JoinAccount=TargetAccount, JoinIp=IpAddress, WindowStart=TimeGenerated, WindowEnd=datetime_add('minute', 5, TimeGenerated)
+) on $left.TargetAccount == $right.JoinAccount and $left.IpAddress == $right.JoinIp
+| where TimeGenerated between (WindowStart .. WindowEnd)
+| summarize RollingCount = count() by TargetAccount, IpAddress, Computer, WindowStart, WindowEnd
+| where RollingCount >= 5
+| summarize min(WindowStart), max(WindowEnd), max(RollingCount) by TargetAccount, IpAddress, Computer
+*/

@@ -1,0 +1,1012 @@
+{
+  "Engine": "JestineSOC Correlation & SIEM Evaluation Runtime v1.0",
+  "EvaluatedAt": "2026-09-15T01:36:15.937035+00:00",
+  "DetectionPrimitives": {
+    "DET-01-PRIM": "detections/sigma/windows_failed_logon.yml",
+    "CORR-DET01": "correlations/corr_det01_bruteforce_threshold.yml",
+    "SPL": "detections/splunk/windows_failed_logon.spl",
+    "KQL": "detections/kql/windows_failed_logon.kql"
+  },
+  "TotalTestCases": 7,
+  "SuitePassCount": 7,
+  "SuiteFailCount": 0,
+  "TestCaseExecutions": [
+    {
+      "TestId": "NEG-001",
+      "TestCaseId": "TC-NEG-001",
+      "Description": "Isolated authentication failure (single mistyped password)",
+      "Category": "BENIGN_SUB_THRESHOLD",
+      "InputEvents": [
+        {
+          "RecordId": 1001,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        }
+      ],
+      "CanonicalEvaluation": {
+        "Engine": "Sigma Correlation 2.1.0 (CORR-DET01) / Splunk streamstats",
+        "GroupingKeys": [
+          "TargetUserName",
+          "IpAddress",
+          "Computer"
+        ],
+        "SlidingWindowSeconds": 300,
+        "ThresholdRequired": 5,
+        "QualifyingEvents": 1,
+        "MaxSlidingWindowObserved": 1,
+        "AlertFired": false,
+        "AlertDetails": [],
+        "StreamTrace": [
+          {
+            "RecordId": 1001,
+            "TimeCreated": "2026-09-15T12:00:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          }
+        ]
+      },
+      "SentinelKqlEvaluation": {
+        "ApproachA_TumblingWindow": {
+          "BucketDuration": "5m",
+          "MaxBucketCount": 1,
+          "AlertFired": false
+        },
+        "ApproachB_SlidingWindow": {
+          "EquivalentToCanonical": true,
+          "AlertFired": false
+        }
+      },
+      "ExpectedAlertState": "NO_ALERT",
+      "ActualAlertState": "NO_ALERT",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-002",
+      "TestCaseId": "TC-NEG-002",
+      "Description": "Sub-threshold failure burst at boundary N-1 (4 failures in 90 seconds)",
+      "Category": "BENIGN_SUB_THRESHOLD_BOUNDARY",
+      "InputEvents": [
+        {
+          "RecordId": 1002,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1003,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:30+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1004,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1005,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:30+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        }
+      ],
+      "CanonicalEvaluation": {
+        "Engine": "Sigma Correlation 2.1.0 (CORR-DET01) / Splunk streamstats",
+        "GroupingKeys": [
+          "TargetUserName",
+          "IpAddress",
+          "Computer"
+        ],
+        "SlidingWindowSeconds": 300,
+        "ThresholdRequired": 5,
+        "QualifyingEvents": 4,
+        "MaxSlidingWindowObserved": 4,
+        "AlertFired": false,
+        "AlertDetails": [],
+        "StreamTrace": [
+          {
+            "RecordId": 1002,
+            "TimeCreated": "2026-09-15T12:00:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1003,
+            "TimeCreated": "2026-09-15T12:00:30+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 2,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1004,
+            "TimeCreated": "2026-09-15T12:01:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 3,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1005,
+            "TimeCreated": "2026-09-15T12:01:30+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 4,
+            "ThresholdRequired": 5,
+            "Breached": false
+          }
+        ]
+      },
+      "SentinelKqlEvaluation": {
+        "ApproachA_TumblingWindow": {
+          "BucketDuration": "5m",
+          "MaxBucketCount": 4,
+          "AlertFired": false
+        },
+        "ApproachB_SlidingWindow": {
+          "EquivalentToCanonical": true,
+          "AlertFired": false
+        }
+      },
+      "ExpectedAlertState": "NO_ALERT",
+      "ActualAlertState": "NO_ALERT",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "POS-001",
+      "TestCaseId": "TC-POS-001",
+      "Description": "Exact threshold breach (5 failures in 120 seconds)",
+      "Category": "ATTACK_EXACT_THRESHOLD",
+      "InputEvents": [
+        {
+          "RecordId": 1006,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1007,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:30+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1008,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1009,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:30+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1010,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:02:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        }
+      ],
+      "CanonicalEvaluation": {
+        "Engine": "Sigma Correlation 2.1.0 (CORR-DET01) / Splunk streamstats",
+        "GroupingKeys": [
+          "TargetUserName",
+          "IpAddress",
+          "Computer"
+        ],
+        "SlidingWindowSeconds": 300,
+        "ThresholdRequired": 5,
+        "QualifyingEvents": 5,
+        "MaxSlidingWindowObserved": 5,
+        "AlertFired": true,
+        "AlertDetails": [
+          {
+            "AlertId": "ALT-CORR01-001",
+            "AlertTitle": "Multiple Windows Network Logon Failures (Threshold Breach)",
+            "DetectionId": "CORR-DET01",
+            "PrimitiveId": "DET-01-PRIM",
+            "TriggerTimestamp": "2026-09-15T12:02:00+00:00",
+            "WindowStart": "2026-09-15T12:00:00+00:00",
+            "WindowEnd": "2026-09-15T12:02:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "FailureCount": 5,
+            "ContributingRecordIds": [
+              1006,
+              1007,
+              1008,
+              1009,
+              1010
+            ],
+            "Severity": "High",
+            "MitreTechnique": "T1110.001"
+          }
+        ],
+        "StreamTrace": [
+          {
+            "RecordId": 1006,
+            "TimeCreated": "2026-09-15T12:00:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1007,
+            "TimeCreated": "2026-09-15T12:00:30+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 2,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1008,
+            "TimeCreated": "2026-09-15T12:01:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 3,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1009,
+            "TimeCreated": "2026-09-15T12:01:30+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 4,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1010,
+            "TimeCreated": "2026-09-15T12:02:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 5,
+            "ThresholdRequired": 5,
+            "Breached": true
+          }
+        ]
+      },
+      "SentinelKqlEvaluation": {
+        "ApproachA_TumblingWindow": {
+          "BucketDuration": "5m",
+          "MaxBucketCount": 5,
+          "AlertFired": true
+        },
+        "ApproachB_SlidingWindow": {
+          "EquivalentToCanonical": true,
+          "AlertFired": true
+        }
+      },
+      "ExpectedAlertState": "ALERT",
+      "ActualAlertState": "ALERT",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "POS-002",
+      "TestCaseId": "TC-POS-002",
+      "Description": "Above-threshold failure burst (6 failures in 100 seconds)",
+      "Category": "ATTACK_ABOVE_THRESHOLD",
+      "InputEvents": [
+        {
+          "RecordId": 1011,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1012,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:20+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1013,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:40+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1014,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1015,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:20+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1016,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:40+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        }
+      ],
+      "CanonicalEvaluation": {
+        "Engine": "Sigma Correlation 2.1.0 (CORR-DET01) / Splunk streamstats",
+        "GroupingKeys": [
+          "TargetUserName",
+          "IpAddress",
+          "Computer"
+        ],
+        "SlidingWindowSeconds": 300,
+        "ThresholdRequired": 5,
+        "QualifyingEvents": 6,
+        "MaxSlidingWindowObserved": 6,
+        "AlertFired": true,
+        "AlertDetails": [
+          {
+            "AlertId": "ALT-CORR01-001",
+            "AlertTitle": "Multiple Windows Network Logon Failures (Threshold Breach)",
+            "DetectionId": "CORR-DET01",
+            "PrimitiveId": "DET-01-PRIM",
+            "TriggerTimestamp": "2026-09-15T12:01:20+00:00",
+            "WindowStart": "2026-09-15T12:00:00+00:00",
+            "WindowEnd": "2026-09-15T12:01:20+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "FailureCount": 5,
+            "ContributingRecordIds": [
+              1011,
+              1012,
+              1013,
+              1014,
+              1015
+            ],
+            "Severity": "High",
+            "MitreTechnique": "T1110.001"
+          },
+          {
+            "AlertId": "ALT-CORR01-002",
+            "AlertTitle": "Multiple Windows Network Logon Failures (Threshold Breach)",
+            "DetectionId": "CORR-DET01",
+            "PrimitiveId": "DET-01-PRIM",
+            "TriggerTimestamp": "2026-09-15T12:01:40+00:00",
+            "WindowStart": "2026-09-15T12:00:00+00:00",
+            "WindowEnd": "2026-09-15T12:01:40+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "FailureCount": 6,
+            "ContributingRecordIds": [
+              1011,
+              1012,
+              1013,
+              1014,
+              1015,
+              1016
+            ],
+            "Severity": "High",
+            "MitreTechnique": "T1110.001"
+          }
+        ],
+        "StreamTrace": [
+          {
+            "RecordId": 1011,
+            "TimeCreated": "2026-09-15T12:00:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1012,
+            "TimeCreated": "2026-09-15T12:00:20+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 2,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1013,
+            "TimeCreated": "2026-09-15T12:00:40+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 3,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1014,
+            "TimeCreated": "2026-09-15T12:01:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 4,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1015,
+            "TimeCreated": "2026-09-15T12:01:20+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 5,
+            "ThresholdRequired": 5,
+            "Breached": true
+          },
+          {
+            "RecordId": 1016,
+            "TimeCreated": "2026-09-15T12:01:40+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 6,
+            "ThresholdRequired": 5,
+            "Breached": true
+          }
+        ]
+      },
+      "SentinelKqlEvaluation": {
+        "ApproachA_TumblingWindow": {
+          "BucketDuration": "5m",
+          "MaxBucketCount": 6,
+          "AlertFired": true
+        },
+        "ApproachB_SlidingWindow": {
+          "EquivalentToCanonical": true,
+          "AlertFired": true
+        }
+      },
+      "ExpectedAlertState": "ALERT",
+      "ActualAlertState": "ALERT",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-003",
+      "TestCaseId": "TC-NEG-003",
+      "Description": "Temporal sliding window enforcement (5 failures spaced over 400s / 6.7 minutes)",
+      "Category": "BENIGN_TEMPORAL_DILUTION",
+      "InputEvents": [
+        {
+          "RecordId": 1017,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1018,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:40+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1019,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:03:20+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1020,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:05:00+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1021,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:06:40+00:00",
+          "TargetUserName": "lab_user_test",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        }
+      ],
+      "CanonicalEvaluation": {
+        "Engine": "Sigma Correlation 2.1.0 (CORR-DET01) / Splunk streamstats",
+        "GroupingKeys": [
+          "TargetUserName",
+          "IpAddress",
+          "Computer"
+        ],
+        "SlidingWindowSeconds": 300,
+        "ThresholdRequired": 5,
+        "QualifyingEvents": 5,
+        "MaxSlidingWindowObserved": 4,
+        "AlertFired": false,
+        "AlertDetails": [],
+        "StreamTrace": [
+          {
+            "RecordId": 1017,
+            "TimeCreated": "2026-09-15T12:00:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1018,
+            "TimeCreated": "2026-09-15T12:01:40+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 2,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1019,
+            "TimeCreated": "2026-09-15T12:03:20+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 3,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1020,
+            "TimeCreated": "2026-09-15T12:05:00+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 4,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1021,
+            "TimeCreated": "2026-09-15T12:06:40+00:00",
+            "TargetUserName": "lab_user_test",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 4,
+            "ThresholdRequired": 5,
+            "Breached": false
+          }
+        ]
+      },
+      "SentinelKqlEvaluation": {
+        "ApproachA_TumblingWindow": {
+          "BucketDuration": "5m",
+          "MaxBucketCount": 3,
+          "AlertFired": false
+        },
+        "ApproachB_SlidingWindow": {
+          "EquivalentToCanonical": true,
+          "AlertFired": false
+        }
+      },
+      "ExpectedAlertState": "NO_ALERT",
+      "ActualAlertState": "NO_ALERT",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-004",
+      "TestCaseId": "TC-NEG-004",
+      "Description": "Machine account failure burst (5 failures for 'LAB-SRV01$')",
+      "Category": "BENIGN_MACHINE_ACCOUNT_FILTER",
+      "InputEvents": [
+        {
+          "RecordId": 1022,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:00+00:00",
+          "TargetUserName": "LAB-SRV01$",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1023,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:15+00:00",
+          "TargetUserName": "LAB-SRV01$",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1024,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:30+00:00",
+          "TargetUserName": "LAB-SRV01$",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1025,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:45+00:00",
+          "TargetUserName": "LAB-SRV01$",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1026,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:00+00:00",
+          "TargetUserName": "LAB-SRV01$",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        }
+      ],
+      "CanonicalEvaluation": {
+        "Engine": "Sigma Correlation 2.1.0 (CORR-DET01) / Splunk streamstats",
+        "GroupingKeys": [
+          "TargetUserName",
+          "IpAddress",
+          "Computer"
+        ],
+        "SlidingWindowSeconds": 300,
+        "ThresholdRequired": 5,
+        "QualifyingEvents": 0,
+        "MaxSlidingWindowObserved": 0,
+        "AlertFired": false,
+        "AlertDetails": [],
+        "StreamTrace": []
+      },
+      "SentinelKqlEvaluation": {
+        "ApproachA_TumblingWindow": {
+          "BucketDuration": "5m",
+          "MaxBucketCount": 0,
+          "AlertFired": false
+        },
+        "ApproachB_SlidingWindow": {
+          "EquivalentToCanonical": true,
+          "AlertFired": false
+        }
+      },
+      "ExpectedAlertState": "NO_ALERT",
+      "ActualAlertState": "NO_ALERT",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-005",
+      "TestCaseId": "TC-NEG-005",
+      "Description": "Horizontal password spray (5 failures within 60s targeting 5 distinct users)",
+      "Category": "UNBOUNDED_ACCOUNT_VARIANCE",
+      "InputEvents": [
+        {
+          "RecordId": 1027,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:00+00:00",
+          "TargetUserName": "user_spray_0",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1028,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:15+00:00",
+          "TargetUserName": "user_spray_1",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1029,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:30+00:00",
+          "TargetUserName": "user_spray_2",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1030,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:00:45+00:00",
+          "TargetUserName": "user_spray_3",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        },
+        {
+          "RecordId": 1031,
+          "EventID": 4625,
+          "TimeCreated": "2026-09-15T12:01:00+00:00",
+          "TargetUserName": "user_spray_4",
+          "TargetDomainName": "LAB",
+          "LogonType": 3,
+          "Status": "0xc000006d",
+          "SubStatus": "0xc000006a",
+          "WorkstationName": "SRC-WS01",
+          "IpAddress": "192.0.2.45",
+          "Computer": "LAB-SRV01.corp.internal"
+        }
+      ],
+      "CanonicalEvaluation": {
+        "Engine": "Sigma Correlation 2.1.0 (CORR-DET01) / Splunk streamstats",
+        "GroupingKeys": [
+          "TargetUserName",
+          "IpAddress",
+          "Computer"
+        ],
+        "SlidingWindowSeconds": 300,
+        "ThresholdRequired": 5,
+        "QualifyingEvents": 5,
+        "MaxSlidingWindowObserved": 1,
+        "AlertFired": false,
+        "AlertDetails": [],
+        "StreamTrace": [
+          {
+            "RecordId": 1027,
+            "TimeCreated": "2026-09-15T12:00:00+00:00",
+            "TargetUserName": "user_spray_0",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1028,
+            "TimeCreated": "2026-09-15T12:00:15+00:00",
+            "TargetUserName": "user_spray_1",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1029,
+            "TimeCreated": "2026-09-15T12:00:30+00:00",
+            "TargetUserName": "user_spray_2",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1030,
+            "TimeCreated": "2026-09-15T12:00:45+00:00",
+            "TargetUserName": "user_spray_3",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          },
+          {
+            "RecordId": 1031,
+            "TimeCreated": "2026-09-15T12:01:00+00:00",
+            "TargetUserName": "user_spray_4",
+            "IpAddress": "192.0.2.45",
+            "Computer": "LAB-SRV01.corp.internal",
+            "SlidingWindowCount": 1,
+            "ThresholdRequired": 5,
+            "Breached": false
+          }
+        ]
+      },
+      "SentinelKqlEvaluation": {
+        "ApproachA_TumblingWindow": {
+          "BucketDuration": "5m",
+          "MaxBucketCount": 1,
+          "AlertFired": false
+        },
+        "ApproachB_SlidingWindow": {
+          "EquivalentToCanonical": true,
+          "AlertFired": false
+        }
+      },
+      "ExpectedAlertState": "NO_ALERT",
+      "ActualAlertState": "NO_ALERT",
+      "TestVerdict": "PASS"
+    }
+  ]
+}
