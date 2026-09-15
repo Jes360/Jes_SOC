@@ -1,0 +1,39 @@
+// ==============================================================================
+// Detection: Windows Network Authentication Success (DET-02-PRIM)
+// Canonical Source: detections/sigma/windows_successful_logon.yml
+// Target Platform: Microsoft Sentinel / Microsoft Defender for Cloud
+// Table: SecurityEvent
+// MITRE ATT&CK: T1078.003 (Valid Accounts: Local Accounts)
+// ==============================================================================
+//
+// ARCHITECTURAL TRANSLATION MAPPING:
+// ------------------------------------------------------------------------------
+// 1. Sigma Intent:
+//    Matches successful Windows network authentication events (Event 4624, LogonType 3).
+//    Filters machine accounts ($ suffix) and built-in system service accounts.
+//
+// 2. KQL Implementation:
+//    Filters SecurityEvent table where EventID == 4624 and LogonType == 3.
+//    Excludes machine accounts and system identities (SYSTEM, ANONYMOUS LOGON, etc.).
+//
+// 3. Operational & Noise Classification (Guardrail 1):
+//    Event 4624 LogonType 3 is ambient background telemetry. This rule is designed
+//    as a correlation primitive (DET-02-PRIM), NOT a standalone scheduled alert rule.
+//    In Microsoft Sentinel, this query serves as a hunting query or sub-query in
+//    multi-event correlation rules (e.g. brute-force followed by logon success).
+//
+// 4. Fields Assumed Present:
+//    - TargetAccount (Target user identity)
+//    - TargetDomainName (Target domain / machine name)
+//    - IpAddress (Source network address)
+//    - WorkstationName (Source workstation)
+//    - Computer (Target host hostname)
+// ==============================================================================
+
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4624
+| where LogonType == 3
+| where not(TargetAccount endswith "$")
+| where not(TargetAccount in~ ("SYSTEM", "ANONYMOUS LOGON", "LOCAL SERVICE", "NETWORK SERVICE", "", "-"))
+| project TimeGenerated, TargetAccount, TargetDomainName, IpAddress, WorkstationName, Computer, LogonType, Activity

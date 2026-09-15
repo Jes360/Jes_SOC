@@ -1,0 +1,223 @@
+{
+  "Engine": "JestineSOC DET-02 Primitive Evaluation Runtime v1.0",
+  "EvaluatedAt": "2026-09-15T06:10:00.270499+00:00",
+  "DetectionPrimitives": {
+    "DET-02-PRIM": "detections/sigma/windows_successful_logon.yml",
+    "SPL": "detections/splunk/windows_successful_logon.spl",
+    "KQL": "detections/kql/windows_successful_logon.kql"
+  },
+  "TotalTestCases": 8,
+  "SuitePassCount": 8,
+  "SuiteFailCount": 0,
+  "TestCaseExecutions": [
+    {
+      "TestId": "AUTH-002",
+      "TestCaseId": "TC-AUTH-002",
+      "Description": "Authentic Windows LSASS Event 4624 Record 80216 Ingestion",
+      "Category": "AUTHENTIC_OS_TELEMETRY_INGESTION",
+      "InputEvent": {
+        "RecordId": 80216,
+        "EventID": 4624,
+        "TimeCreated": "2026-09-14T12:22:30.500+00:00",
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB-HOST01",
+        "LogonType": 3,
+        "WorkstationName": "LAB-CLIENT01",
+        "IpAddress": "127.0.0.1",
+        "Computer": "LAB-HOST01"
+      },
+      "Evaluation": {
+        "EventID_Match": true,
+        "LogonType_Match": true,
+        "MachineAccount_Filtered": false,
+        "SystemAccount_Filtered": false,
+        "PrimitiveResult": "MATCH"
+      },
+      "ExpectedState": "MATCH",
+      "ActualState": "MATCH",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "POS-002",
+      "TestCaseId": "TC-POS-002",
+      "Description": "Valid network authentication for local user account",
+      "Category": "CONTROLLED_SIMULATION_MATCH",
+      "InputEvent": {
+        "RecordId": 81001,
+        "EventID": 4624,
+        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB",
+        "LogonType": 3,
+        "IpAddress": "192.0.2.45",
+        "Computer": "LAB-SRV01"
+      },
+      "Evaluation": {
+        "EventID_Match": true,
+        "LogonType_Match": true,
+        "MachineAccount_Filtered": false,
+        "SystemAccount_Filtered": false,
+        "PrimitiveResult": "MATCH"
+      },
+      "ExpectedState": "MATCH",
+      "ActualState": "MATCH",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-001",
+      "TestCaseId": "TC-NEG-001",
+      "Description": "Failed logon record (Event 4625) rejection",
+      "Category": "CHANNEL_EVENT_ID_FILTER",
+      "InputEvent": {
+        "RecordId": 81002,
+        "EventID": 4625,
+        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB",
+        "LogonType": 3,
+        "IpAddress": "192.0.2.45",
+        "Computer": "LAB-SRV01"
+      },
+      "Evaluation": {
+        "EventID_Match": false,
+        "LogonType_Match": true,
+        "MachineAccount_Filtered": false,
+        "SystemAccount_Filtered": false,
+        "PrimitiveResult": "NO_MATCH"
+      },
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-002",
+      "TestCaseId": "TC-NEG-002",
+      "Description": "Interactive console logon (LogonType 2) rejection",
+      "Category": "LOGON_TYPE_BOUNDARY_FILTER",
+      "InputEvent": {
+        "RecordId": 81003,
+        "EventID": 4624,
+        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TargetUserName": "lab_user_test",
+        "TargetDomainName": "LAB",
+        "LogonType": 2,
+        "IpAddress": "127.0.0.1",
+        "Computer": "LAB-SRV01"
+      },
+      "Evaluation": {
+        "EventID_Match": true,
+        "LogonType_Match": false,
+        "MachineAccount_Filtered": false,
+        "SystemAccount_Filtered": false,
+        "PrimitiveResult": "NO_MATCH"
+      },
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-003",
+      "TestCaseId": "TC-NEG-003",
+      "Description": "Machine account network logon rejection ('LAB-SRV01$')",
+      "Category": "MACHINE_ACCOUNT_FILTER",
+      "InputEvent": {
+        "RecordId": 81004,
+        "EventID": 4624,
+        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TargetUserName": "LAB-SRV01$",
+        "TargetDomainName": "LAB",
+        "LogonType": 3,
+        "IpAddress": "192.0.2.45",
+        "Computer": "LAB-SRV01"
+      },
+      "Evaluation": {
+        "EventID_Match": true,
+        "LogonType_Match": true,
+        "MachineAccount_Filtered": true,
+        "SystemAccount_Filtered": false,
+        "PrimitiveResult": "NO_MATCH"
+      },
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-004",
+      "TestCaseId": "TC-NEG-004",
+      "Description": "Built-in NT AUTHORITY\\SYSTEM service logon rejection",
+      "Category": "SYSTEM_SERVICE_ACCOUNT_FILTER",
+      "InputEvent": {
+        "RecordId": 81005,
+        "EventID": 4624,
+        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TargetUserName": "SYSTEM",
+        "TargetDomainName": "NT AUTHORITY",
+        "LogonType": 3,
+        "IpAddress": "127.0.0.1",
+        "Computer": "LAB-SRV01"
+      },
+      "Evaluation": {
+        "EventID_Match": true,
+        "LogonType_Match": true,
+        "MachineAccount_Filtered": false,
+        "SystemAccount_Filtered": true,
+        "PrimitiveResult": "NO_MATCH"
+      },
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-005",
+      "TestCaseId": "TC-NEG-005",
+      "Description": "ANONYMOUS LOGON authentication rejection",
+      "Category": "ANONYMOUS_LOGON_FILTER",
+      "InputEvent": {
+        "RecordId": 81006,
+        "EventID": 4624,
+        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TargetUserName": "ANONYMOUS LOGON",
+        "TargetDomainName": "NT AUTHORITY",
+        "LogonType": 3,
+        "IpAddress": "192.0.2.88",
+        "Computer": "LAB-SRV01"
+      },
+      "Evaluation": {
+        "EventID_Match": true,
+        "LogonType_Match": true,
+        "MachineAccount_Filtered": false,
+        "SystemAccount_Filtered": true,
+        "PrimitiveResult": "NO_MATCH"
+      },
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "TestVerdict": "PASS"
+    },
+    {
+      "TestId": "NEG-006",
+      "TestCaseId": "TC-NEG-006",
+      "Description": "LOCAL SERVICE background account rejection",
+      "Category": "SERVICE_ACCOUNT_FILTER",
+      "InputEvent": {
+        "RecordId": 81007,
+        "EventID": 4624,
+        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TargetUserName": "LOCAL SERVICE",
+        "TargetDomainName": "NT AUTHORITY",
+        "LogonType": 3,
+        "IpAddress": "127.0.0.1",
+        "Computer": "LAB-SRV01"
+      },
+      "Evaluation": {
+        "EventID_Match": true,
+        "LogonType_Match": true,
+        "MachineAccount_Filtered": false,
+        "SystemAccount_Filtered": true,
+        "PrimitiveResult": "NO_MATCH"
+      },
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "TestVerdict": "PASS"
+    }
+  ]
+}

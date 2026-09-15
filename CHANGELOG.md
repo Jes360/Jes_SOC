@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.3.1-det02] - 2026-09-15
+### Added
+- **DET-02 Specification:** Authored complete 23-section detection specification `docs/detections/DET-02-windows-successful-logon.md` defining the network authentication success primitive (`DET-02-PRIM`), ATT&CK `T1078.003` mapping, scope limitations `SL-04` and `SL-05`, and downstream correlation role (`CORR-01`).
+- **Canonical Sigma Primitive:** Created `detections/sigma/windows_successful_logon.yml` (`level: low`) targeting Event 4624 (LogonType 3) with machine account (`*$`) and well-known system service account exclusions.
+- **Derived SIEM Translations:** Built `detections/splunk/windows_successful_logon.spl` and `detections/kql/windows_successful_logon.kql` with translation headers and documented noise classification.
+- **Automated Evaluation Engine & Evidence:** Implemented `tests/runners/eval_det02_engine.py` and `tests/test_det02_boundary_suite.ps1` evaluating authentic LSASS Record 80216 and 7 boundary conditions, generating `evidence/detections/ev-det-02-boundary-matrix.json` and `ev-det-02-execution-proof.json`.
+- **CI Pipeline Integration:** Wired DET-02 evaluation engine natively into `.github/workflows/validate.yml`.
+
 ## [0.3.0] - 2026-09-15
 ### Milestone
 - **DET-01 Promoted to Validated:** Formal Auditor PASS achieved.

@@ -1,0 +1,35 @@
+# ==============================================================================
+# Detection: Windows Network Authentication Success (DET-02-PRIM)
+# Canonical Source: detections/sigma/windows_successful_logon.yml
+# Target Platform: Splunk Enterprise / Splunk Cloud
+# MITRE ATT&CK: T1078.003 (Valid Accounts: Local Accounts)
+# ==============================================================================
+#
+# ARCHITECTURAL TRANSLATION MAPPING:
+# ------------------------------------------------------------------------------
+# 1. Sigma Intent:
+#    Matches successful Windows network authentication events (Event 4624, LogonType 3).
+#    Serves as an atomic telemetry primitive to feed multi-stage correlation (CORR-01)
+#    linking prior brute-force failure spikes (DET-01) to subsequent successful access.
+#
+# 2. Splunk Implementation:
+#    Filters EventCode=4624 and Logon_Type=3, excluding computer accounts (*$)
+#    and well-known system service accounts.
+#
+# 3. Operational & Noise Classification (Guardrail 1):
+#    Event 4624 LogonType=3 is high-volume ambient telemetry in enterprise networks.
+#    This search is NOT intended to generate standalone SOC alerts. It must be
+#    coupled downstream with correlation logic or evaluated in post-failure context.
+#
+# 4. Fields Assumed Present:
+#    - TargetUserName (Account name)
+#    - TargetDomainName (Target domain / host)
+#    - IpAddress or src_ip (Network source address)
+#    - WorkstationName (Source host)
+#    - Computer (Target host hostname)
+# ==============================================================================
+
+index=security sourcetype="WinEventLog:Security" EventCode=4624 Logon_Type=3
+    NOT TargetUserName="*$"
+    NOT TargetUserName IN ("SYSTEM", "ANONYMOUS LOGON", "LOCAL SERVICE", "NETWORK SERVICE", "", "-")
+| table _time, TargetUserName, TargetDomainName, IpAddress, WorkstationName, Computer, Logon_Type

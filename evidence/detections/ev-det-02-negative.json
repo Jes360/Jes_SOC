@@ -1,0 +1,14 @@
+{
+  "TestCaseId": "TC-NEG-003",
+  "DetectionId": "DET-02",
+  "TestType": "MACHINE_ACCOUNT_FILTER_SUPPRESSION",
+  "Timestamp": "2026-09-15T06:10:00.273327+00:00",
+  "TargetUserName": "LAB-SRV01$",
+  "EventID": 4624,
+  "LogonType": 3,
+  "FilterApplied": "filter_machine_accounts (TargetUserName ends with $)",
+  "ExpectedState": "NO_MATCH",
+  "ActualState": "NO_MATCH",
+  "Verdict": "PASS",
+  "SanitizationStandard": "RFC 5737 / Loopback (NFR-03)"
+}

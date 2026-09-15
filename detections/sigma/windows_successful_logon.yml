@@ -1,0 +1,44 @@
+title: Windows Network Authentication Success (Atomic Event Primitive)
+name: windows_successful_logon
+id: 7c8d9e0f-3a1b-4c2d-8e4f-5a6b7c8d9e02
+status: experimental
+description: |
+    Matches individual successful Windows network authentication events (Event 4624, LogonType 3).
+    Filters out computer accounts and well-known system service accounts.
+    Classified as a low-severity telemetry primitive (DET-02-PRIM) intended for downstream
+    correlation in 'mr_bruteforce_after_failures' (CORR-01) rather than standalone alerting.
+references:
+    - https://attack.mitre.org/techniques/T1078/003/
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4624
+author: JestineSOC Detection Engineering Team
+date: 2026-09-15
+modified: 2026-09-15
+tags:
+    - attack.initial-access
+    - attack.persistence
+    - attack.t1078.003
+    - attack.t1078.002
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4624
+        LogonType: 3
+    filter_machine_accounts:
+        TargetUserName|endswith: '$'
+    filter_system_accounts:
+        TargetUserName:
+            - 'SYSTEM'
+            - 'ANONYMOUS LOGON'
+            - 'LOCAL SERVICE'
+            - 'NETWORK SERVICE'
+    filter_empty:
+        TargetUserName:
+            - ''
+            - '-'
+    condition: selection and not 1 of filter_*
+falsepositives:
+    - Legitimate administrative network shares (SMB) or WinRM remote sessions
+    - Routine inter-system user authentication in Active Directory domains
+level: low

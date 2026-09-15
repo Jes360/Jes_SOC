@@ -1,0 +1,13 @@
+{
+  "TestCaseId": "TC-AUTH-002",
+  "DetectionId": "DET-02",
+  "TestType": "AUTHENTIC_OS_LOGON_MATCH",
+  "Timestamp": "2026-09-15T06:10:00.271959+00:00",
+  "RecordId": 80216,
+  "EventID": 4624,
+  "LogonType": 3,
+  "TargetUserName": "lab_user_test",
+  "VerificationSource": "evidence/telemetry/evtx-auth-sample.json",
+  "Verdict": "PASS",
+  "SanitizationStandard": "RFC 5737 / Loopback (NFR-03)"
+}
