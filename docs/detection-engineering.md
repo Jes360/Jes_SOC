@@ -64,10 +64,14 @@ correlation:
 ```
 
 ### 3.1 Mandatory Correlation Dimensions (Grouping Keys)
-To prevent cross-user false positives (e.g. User A, User B, and User C each mistyping their password once within 5 minutes being misidentified as a brute-force attack), correlation rules must strictly bind events via:
-* **Account Dimension:** `TargetUserName`
-* **Source Dimension:** `WorkstationName` and/or `IpAddress`
-* **Temporal Window:** `timespan: 5m`
+To prevent cross-user false positives (e.g. User A, User B, and User C each mistyping their password once within 5 minutes being misidentified as a brute-force attack), correlation rules must strictly bind events via four explicit dimensions:
+* **Account Dimension:** `TargetUserName` (exact case-insensitive account match)
+* **Source Dimension:** `WorkstationName` and/or `IpAddress` (originating host/endpoint)
+* **Destination Dimension:** `Computer` / target system hostname receiving the authentications
+* **Temporal Window:** Defined interval (e.g., `timespan: 5m`)
+
+Do not use vague correlations such as "multiple failures followed by a successful login." All correlation rules (e.g. `CORR-01`) must strictly evaluate:
+$$\text{same account} + \text{same source} + \text{same destination} + \text{defined time window}$$
 
 ---
 
@@ -76,3 +80,34 @@ To prevent cross-user false positives (e.g. User A, User B, and User C each mist
 Every rule must declare its documented false positives under the `falsepositives` key in Sigma:
 * **Known Benign Triggers:** Vulnerability scanners, automated backup service accounts with expired passwords, or scheduled task account misconfigurations.
 * **Tuning Guidance:** Methods for excluding known service account prefixes (e.g. `svc_*`) or trusted internal management subnets.
+
+---
+
+## 5. Detection Maturity Lifecycle & Progression Criteria
+
+JestineSOC enforces an **evidence-driven** 5-stage maturity progression model. A detection's maturity is never determined by whether it passes syntax linting, but by empirical verification:
+
+```mermaid
+flowchart LR
+    M1["1. Experimental<br/>(Draft Logic)"] --> M2["2. Functional<br/>(Parses & Loads)"]
+    M2 --> M3["3. Validated<br/>(Empirical Pos/Neg Tests)"]
+    M3 --> M4["4. Tuned<br/>(Noise Filtered)"]
+    M4 --> M5["5. Production-Candidate<br/>(Translations Verified)"]
+```
+
+| Maturity Stage | Operational Definition | Mandatory Promotion Criteria |
+| :--- | :--- | :--- |
+| **Stage 1: Experimental** | Initial analytic draft or theoretical rule. | Rule hypothesis authored in Sigma YAML format; ATT&CK mapped. |
+| **Stage 2: Functional** | Syntax valid and loadable by detection engines. | Passes `sigma check` (Sigma 2.1.0) and `yamllint`; logic matches sample logs. *(Note: Sigma linting $\ne$ validation).* |
+| **Stage 3: Validated** | Empirically verified against active telemetry. | **Positive attack test fires reliably** AND **negative benign test cleanly suppresses**; raw JSON evidence committed with OS `RecordId` mapping. |
+| **Stage 4: Tuned** | Filtered against documented false positives. | Operational noise scenarios tested; exclusions verified against boundary conditions ($N - 1$ attempts). |
+| **Stage 5: Production-Candidate** | Fully documented and translated for multi-SIEM deployment. | Complete 23-section detection specification approved; verified SPL and KQL translations documented with semantic divergences. |
+
+---
+
+## 6. Mandatory Detection Specification Standard
+
+Before any detection is implemented in Phase 2, an instance of the canonical **Detection Specification Template** must be authored:
+* **Canonical Template:** [`docs/templates/detection-spec-template.md`](file:///c:/Users/jesti/OneDrive%20-%20Deakin%20University/Desktop/Portfolio/jestine-soc/docs/templates/detection-spec-template.md)
+* **Mandatory Sections (23 Fields):** Detection ID, Name, Objective, Threat / Analytic Hypothesis, Data Sources, Required Telemetry Fields, Canonical Sigma Rule, MITRE ATT&CK Mapping, Positive Test, Negative Test, Expected Result, Actual Result, False-Positive Scenarios, Investigation Questions, Severity Rationale, Correlation/Grouping Logic, SPL Translation, KQL Translation, Semantic Divergence from Sigma, Evidence Location / Provenance, Maturity Level, Known Limitations / Non-Claims, and Acceptance Criteria.
+

@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.3.0-gate0] - 2026-09-15
+### Added
+- **Phase 2 Gate 0 Architecture:** Established canonical 23-section Detection Specification Template (`docs/templates/detection-spec-template.md`) mandating threat hypotheses, explicit non-claims, 4-dimensional correlation keys, and empirical positive/negative testing fields.
+- **Evidence-Driven Maturity Model:** Documented 5-stage lifecycle (`Experimental` $\rightarrow$ `Functional` $\rightarrow$ `Validated` $\rightarrow$ `Tuned` $\rightarrow$ `Production-Candidate`) in `docs/detection-engineering.md`, enforcing that Sigma linting does not equate to detection validation.
+- **Correlation Key Architecture:** Specified 4D grouping standard for `CORR-01`: $\text{same account} + \text{same source} + \text{same destination} + \text{defined time window}$.
+- **Traceability Updates:** Mapped `FR-03` and `FR-04` to the Gate 0 specification standard in `docs/traceability-matrix.md`.
+
 ## [0.2.2] - 2026-09-15
 ### Fixed
 - **P1-07 (Verification Completeness & Logic Tightening):** Closed verification loophole in `telemetry/generators/gen-auth-events.ps1` by enforcing strict multi-factor equality: `FailuresRequested == FailuresEmitted == FailuresObserved` AND `SuccessRequested == SuccessEmitted == SuccessObserved`.
