@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.3.0] - 2026-09-15
+### Milestone
+- **DET-01 Promoted to Validated:** Formal Auditor PASS achieved.
+- **Scope Limitations (SL-01, SL-02, SL-03):** Formally codified low-and-slow threshold evasion, proxy IP rotation, and horizontal spray non-claims in `docs/detections/DET-01-windows-failed-logon.md`.
+- **Authentic Telemetry Ingestion (TC-AUTH-001):** Validated authentic LSASS Event 4625 records via automated evaluation engine executed natively in GitHub Actions CI.
+- **SIEM Alignment (F-15 & F-16):** Documented Sentinel KQL `WorkstationName` grouping key divergence and clarified scheduled lookback window in `detections/kql/windows_failed_logon.kql`.
+
 ## [0.3.0-det01-closure] - 2026-09-15
 ### Fixed
 - **DET01-01 (Canonical Semantic Split):** Factored DET-01 into a two-tier canonical architecture: (1) Atomic Event Primitive `DET-01-PRIM` (`detections/sigma/windows_failed_logon.yml`) and (2) Canonical Threshold Correlation `CORR-DET01` (`correlations/corr_det01_bruteforce_threshold.yml`) strictly conforming to Sigma Correlation Specification 2.1.0 (`type: event_count`, `timespan: 5m`, `condition: gte: 5`).

@@ -6,7 +6,8 @@ description: |
     Matches individual Windows network authentication failure events (Event 4625, LogonType 3)
     exhibiting NTSTATUS bad password status codes (0xc000006d / 0xc000006a).
     Serves as the atomic detection primitive (DET-01-PRIM) referenced by threshold correlation
-    rule 'corr_det01_bruteforce_threshold' and composite correlation 'mr_bruteforce_after_failures'.
+    rule 'corr_det01_bruteforce_threshold' and planned composite correlation
+    'mr_bruteforce_after_failures' (CORR-01, scheduled in Phase 2 roadmap).
 references:
     - https://attack.mitre.org/techniques/T1110/001/
     - https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4625

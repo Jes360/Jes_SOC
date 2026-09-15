@@ -24,8 +24,10 @@
 //      account as 'TargetAccount' rather than 'TargetUserName'.
 //    - Hex Code Matching: KQL string equality '=~' is case-insensitive, reliably
 //      matching both '0xc000006d' and '0xC000006D' without multiple OR clauses.
-//    - Machine Account Filtering: 'not(TargetAccount endswith "$")' matches Sigma's
-//      'TargetUserName|endswith: "$"' filter.
+//    - Grouping Key Divergence (F-15): KQL groups by WorkstationName alongside
+//      IpAddress. In environments where WorkstationName is blank or ephemeral,
+//      this additional key may fragment failure clusters compared to canonical
+//      Sigma correlation's 3D key (TargetUserName, IpAddress, Computer).
 //
 // 4. Fields Assumed Present:
 //    - TargetAccount (Target user identity)
@@ -35,7 +37,9 @@
 // ==============================================================================
 
 // --- APPROACH A: High-Efficiency Tumbling Bucket (Standard Sentinel Analytic Rule) ---
-// Recommended Sentinel Rule Schedule: Run every 1 minute, Lookup data from past 5 minutes.
+// Scheduled Analytic Rule Config: Run every 5 minutes, Lookup data from past 5 minutes.
+// Note: Initial table filter uses ago(1h) for interactive ad-hoc hunting; for scheduled
+// rule deployment, set lookback filter to ago(5m) or ago(10m) to optimize query performance.
 SecurityEvent
 | where TimeGenerated >= ago(1h)
 | where EventID == 4625

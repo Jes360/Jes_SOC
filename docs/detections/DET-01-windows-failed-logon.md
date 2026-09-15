@@ -122,7 +122,8 @@ description: |
     Matches individual Windows network authentication failure events (Event 4625, LogonType 3)
     exhibiting NTSTATUS bad password status codes (0xc000006d / 0xc000006a).
     Serves as the atomic detection primitive (DET-01-PRIM) referenced by threshold correlation
-    rule 'corr_det01_bruteforce_threshold' and composite correlation 'mr_bruteforce_after_failures'.
+    rule 'corr_det01_bruteforce_threshold' and planned composite correlation
+    'mr_bruteforce_after_failures' (CORR-01, scheduled in Phase 2 roadmap).
 references:
     - https://attack.mitre.org/techniques/T1110/001/
     - https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4625
@@ -263,6 +264,8 @@ The following matrix resolves all dialect mappings, windowing semantics, and fie
 | **5-Minute Window** | N/A (Delegated to correlation) | ✓ (`timespan: 5m`, sliding) | ✓ (`time_window=5m`, sliding) | ⚠️ Approximate (`bin(5m)`, tumbling) | ✓ (`between (WindowStart..WindowEnd)`, sliding) |
 | **Machine Account Exclusion** | ✓ (`TargetUserName\|endswith: '$'`) | ✓ (Inherited from PRIM) | ✓ (`NOT TargetUserName="*$"`) | ✓ (`not(TargetAccount endswith "$")`) | ✓ (`not(TargetAccount endswith "$")`) |
 
+* **Grouping Key Divergence Note (F-15):** The canonical Sigma correlation `CORR-DET01` groups strictly by the 3D key `(TargetUserName, IpAddress, Computer)`. The KQL translation includes `WorkstationName` in its grouping clause for host attribution. In enterprise environments where network clients emit transient, spoofed, or blank `WorkstationName` values (e.g. anonymous NTLM negotiations), this additional key can split failure clusters across separate buckets. Where workstation naming is inconsistent, Sentinel rules should omit `WorkstationName` from the `by` clause to mirror canonical Sigma behavior.
+
 ---
 
 ## 6. Testing, Verification & Boundary Evidence
@@ -344,14 +347,15 @@ Structured triage path for Tier-1/Tier-2 SOC analysts (aligned with NIST SP 800-
   1. `TargetUserName` is a Domain Admin, Enterprise Admin, or Local Administrator; OR
   2. The failed logon burst is followed within 5 minutes by a successful authentication (`CORR-01`).
 
-### 22. Known Limitations & Non-Claims
-* **Explicit Non-Claims:**
-  * This detection does NOT detect low-and-slow password guessing (e.g., 1 attempt every 10 minutes) designed to evade the 5-minute temporal window.
-  * This detection does NOT detect password spraying attacks where an adversary attempts 1 password across 100 different accounts (addressed by a separate horizontal spraying rule).
-  * This detection monitors only NTLM/Kerberos network logons recorded under Event 4625; it does not detect web application or cloud portal credential attacks.
+### 22. Known Limitations & Non-Claims (Scope Limitations SL-01 through SL-03)
+* **Scope Limitations (Explicit Non-Claims):**
+  * **`SL-01` (Low-and-Slow Threshold Evasion):** This detection does NOT detect low-and-slow password guessing (e.g., 1 attempt every 6–10 minutes) deliberately timed to evade the 5-minute sliding window (`timespan: 5m`). Such adversary activity must be addressed by extended-window baseline analytics (e.g., 24-hour failed logon aggregations).
+  * **`SL-02` (Distributed / Proxy IP Rotation):** Adversaries cycling through rotating proxy IP addresses or botnet nodes will bypass the single-source `IpAddress` grouping dimension.
+  * **`SL-03` (Horizontal Password Spraying):** This detection is designed for single-target brute-force and does NOT detect horizontal password spraying where an adversary attempts 1 password across dozens or hundreds of different user accounts (addressed by a separate horizontal spray detection rule grouping by source IP across unique accounts).
+  * **Service Protocol Scope:** This detection monitors only Windows network authentications (LogonType = 3) recorded in Security Event 4625; it does not monitor cloud identity (Entra ID), web portal, or Kerberos pre-authentication failures (Event 4771).
 * **Evasion Vectors:**
-  * Adversaries cycling through rotating proxy IP addresses will bypass the single-source `IpAddress` grouping key.
-  * Adversaries guessing below the threshold ($N \le 4$) will not trigger this rule.
+  * Adversaries guessing below the threshold ($N \le 4$) will not trigger this rule (empirically confirmed by `TC-NEG-002`).
+  * Adversaries spreading attempts across multiple source IP addresses or distinct target accounts will not breach single-entity grouping thresholds (empirically confirmed by `TC-NEG-005`).
 
 ### 23. Acceptance Criteria
 - [x] Canonical 23-section detection specification authored and reviewed.
