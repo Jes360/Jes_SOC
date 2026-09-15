@@ -50,6 +50,11 @@ jobs:
               print('[Phase Note] correlations/ contains no .yml files yet. Skipping until Phase 2.')
           "
 
+      - name: Execute Detection Engine & Boundary Test Suite
+        run: |
+          echo "Executing DET-01 detection evaluation engine and boundary suite..."
+          python tests/runners/eval_det01_engine.py
+
       - name: PowerShell Script Syntax Validation
         shell: pwsh
         run: |

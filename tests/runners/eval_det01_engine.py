@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 """
-JestineSOC: DET-01 Backend Detection Evaluation Engine
-------------------------------------------------------
-Implements and proves the execution of:
+JestineSOC: DET-01 Backend Detection Evaluation Engine & Proof Runtime
+---------------------------------------------------------------------
+Evaluates:
   1. Atomic Qualifying Event Primitive (DET-01-PRIM: detections/sigma/windows_failed_logon.yml)
   2. Canonical Threshold Correlation (CORR-DET01: correlations/corr_det01_bruteforce_threshold.yml)
   3. Splunk SPL 'streamstats time_window=5m' implementation
   4. Microsoft Sentinel KQL Approach A (Tumbling) vs Approach B (Sliding Window)
 
-Evaluates the complete 5-case Boundary Test Matrix mandated by the Auditor:
-  - NEG-001: N = 1 event / 5m   -> NO ALERT (isolated typo baseline)
-  - NEG-002: N = 4 events / 5m  -> NO ALERT (threshold boundary N-1)
-  - POS-001: N = 5 events / 5m  -> ALERT (exact threshold breach)
-  - POS-002: N = 6 events / 5m  -> ALERT (above threshold)
-  - NEG-003: N = 5 events / >5m -> NO ALERT (temporal sliding window enforcement)
-Plus supplemental control cases:
-  - NEG-004: Machine account exclusion ($ suffix) -> NO ALERT
-  - NEG-005: Account variance (password spray across distinct users) -> NO ALERT
+Evaluates both:
+  A. Authentic OS Telemetry Ingestion (TC-AUTH-001):
+     Ingests genuine Windows Security Event 4625 records emitted by LSASS via native
+     advapi32.dll LogonUserW from Phase 1 (evidence/telemetry/evtx-auth-sample.json).
+  B. Full Boundary Test Matrix (TC-NEG-001 to TC-NEG-005, TC-POS-001, TC-POS-002):
+     Evaluates exact boundary cut-offs (N=1, N=4, N=5, N=6), temporal sliding window
+     dilution (>5m), machine account exclusions, and account variance.
 
 Generates auditable execution evidence artifacts:
   - evidence/detections/ev-det-01-boundary-matrix.json
@@ -28,8 +26,35 @@ import sys
 import json
 from datetime import datetime, timedelta, timezone
 
+
 # -----------------------------------------------------------------------------
-# 1. ATOMIC PRIMITIVE FILTER (DET-01-PRIM)
+# 1. EVENT NORMALIZATION & PARSING
+# -----------------------------------------------------------------------------
+def normalize_event(evt: dict) -> dict:
+    """Normalizes both flat event representations and raw EVTX EventData structures."""
+    if "EventData" in evt and isinstance(evt["EventData"], dict):
+        ed = evt["EventData"]
+        time_str = evt.get("TimeCreated", "")
+        if time_str.endswith("Z"):
+            time_str = time_str[:-1] + "+00:00"
+        return {
+            "RecordId": evt.get("RecordId"),
+            "EventID": int(evt.get("EventID", 0)),
+            "TimeCreated": time_str,
+            "TargetUserName": ed.get("TargetUserName", ""),
+            "TargetDomainName": ed.get("TargetDomainName", ""),
+            "LogonType": int(ed.get("LogonType", 0)),
+            "Status": str(ed.get("Status", "")).lower(),
+            "SubStatus": str(ed.get("SubStatus", "")).lower(),
+            "WorkstationName": ed.get("WorkstationName", ""),
+            "IpAddress": ed.get("IpAddress", "127.0.0.1"),
+            "Computer": evt.get("Computer", "LAB-HOST01")
+        }
+    return evt
+
+
+# -----------------------------------------------------------------------------
+# 2. ATOMIC PRIMITIVE FILTER (DET-01-PRIM)
 # -----------------------------------------------------------------------------
 def evaluate_det01_primitive(event: dict) -> bool:
     """
@@ -43,22 +68,23 @@ def evaluate_det01_primitive(event: dict) -> bool:
         TargetUserName|endswith: '$'
       condition: selection and not filter_machine_accounts
     """
-    if event.get("EventID") != 4625:
+    evt = normalize_event(event)
+    if evt.get("EventID") != 4625:
         return False
-    if event.get("LogonType") != 3:
+    if evt.get("LogonType") != 3:
         return False
-    status = str(event.get("Status", "")).lower()
-    substatus = str(event.get("SubStatus", "")).lower()
+    status = str(evt.get("Status", "")).lower()
+    substatus = str(evt.get("SubStatus", "")).lower()
     if status != "0xc000006d" or substatus != "0xc000006a":
         return False
-    target_user = event.get("TargetUserName", "")
+    target_user = evt.get("TargetUserName", "")
     if target_user.endswith("$"):
         return False
     return True
 
 
 # -----------------------------------------------------------------------------
-# 2. CANONICAL CORRELATION ENGINE (CORR-DET01 / SPLUNK STREAMSTATS)
+# 3. CANONICAL CORRELATION ENGINE (CORR-DET01 / SPLUNK STREAMSTATS)
 # -----------------------------------------------------------------------------
 def evaluate_sliding_window_correlation(
     events: list,
@@ -66,7 +92,8 @@ def evaluate_sliding_window_correlation(
     threshold: int = 5
 ) -> dict:
     qualifying_events = []
-    for evt in events:
+    for raw_evt in events:
+        evt = normalize_event(raw_evt)
         if evaluate_det01_primitive(evt):
             qualifying_events.append(evt)
 
@@ -129,14 +156,14 @@ def evaluate_sliding_window_correlation(
 
 
 # -----------------------------------------------------------------------------
-# 3. KQL APPROACH A (TUMBLING WINDOW) SIMULATOR
+# 4. KQL APPROACH A (TUMBLING WINDOW) SIMULATOR
 # -----------------------------------------------------------------------------
 def evaluate_kql_tumbling_window(
     events: list,
     bucket_minutes: int = 5,
     threshold: int = 5
 ) -> dict:
-    qualifying_events = [e for e in events if evaluate_det01_primitive(e)]
+    qualifying_events = [normalize_event(e) for e in events if evaluate_det01_primitive(e)]
     if not qualifying_events:
         return {"AlertFired": False, "Buckets": {}, "MaxBucketCount": 0}
 
@@ -159,7 +186,7 @@ def evaluate_kql_tumbling_window(
 
 
 # -----------------------------------------------------------------------------
-# 4. TEST CASE DATASET GENERATOR
+# 5. DATASET GENERATORS & AUTHENTIC INGESTION
 # -----------------------------------------------------------------------------
 def generate_test_event(
     record_id: int,
@@ -189,9 +216,32 @@ def generate_test_event(
     }
 
 
-def build_boundary_suite():
+def load_authentic_phase1_events():
+    path = os.path.join("evidence", "telemetry", "evtx-auth-sample.json")
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("Events", [])
+
+
+def build_full_evaluation_suite():
     base_time = datetime(2026, 9, 15, 12, 0, 0, tzinfo=timezone.utc)
     suite = {}
+
+    # Case 0: AUTH-001 (Authentic LSASS OS Telemetry Ingestion from Phase 1)
+    authentic_events = load_authentic_phase1_events()
+    if authentic_events:
+        suite["AUTH-001"] = {
+            "TestCaseId": "TC-AUTH-001",
+            "Description": "Authentic Windows LSASS Event Log Ingestion (Phase 1 evtx-auth-sample.json)",
+            "Category": "AUTHENTIC_OS_TELEMETRY_INGESTION",
+            "EventsRequested": len(authentic_events),
+            "TimeSpanSeconds": 3,
+            "ExpectedAlert": True,
+            "Rationale": "Ingests 5 authentic Event 4625 records generated by native advapi32!LogonUserW into LSASS; proves real OS telemetry triggers threshold breach.",
+            "Events": authentic_events
+        }
 
     # Case 1: NEG-001 (N=1 event / 5m -> isolated typo)
     suite["NEG-001"] = {
@@ -262,8 +312,6 @@ def build_boundary_suite():
     }
 
     # Case 5: NEG-003 (N=5 events / >5m -> temporal sliding window enforcement)
-    # Events spaced 100s apart: 0s, 100s, 200s, 300s, 400s (total span 400s = 6.67 minutes)
-    # At any point in time, sliding window of 300s contains at most 4 events!
     suite["NEG-003"] = {
         "TestCaseId": "TC-NEG-003",
         "Description": "Temporal sliding window enforcement (5 failures spaced over 400s / 6.7 minutes)",
@@ -315,17 +363,17 @@ def build_boundary_suite():
 
 
 # -----------------------------------------------------------------------------
-# 5. EXECUTION & EVIDENCE SERIALIZATION
+# 6. EXECUTION & EVIDENCE SERIALIZATION
 # -----------------------------------------------------------------------------
 def run_evaluation_suite():
     print("=" * 70)
     print("  JestineSOC: DET-01 Backend Evaluation Engine & Boundary Matrix")
     print("=" * 70)
 
-    suite = build_boundary_suite()
+    suite = build_full_evaluation_suite()
     matrix_results = []
     full_execution_proof = {
-        "Engine": "JestineSOC Correlation & SIEM Evaluation Runtime v1.0",
+        "Engine": "JestineSOC Correlation & SIEM Evaluation Runtime v1.1",
         "EvaluatedAt": datetime.now(timezone.utc).isoformat(),
         "DetectionPrimitives": {
             "DET-01-PRIM": "detections/sigma/windows_failed_logon.yml",
@@ -368,7 +416,6 @@ def run_evaluation_suite():
         print(f"    Actual Alert      : {actual_alert}")
         print(f"    Verdict           : {status_str}")
 
-        # Record boundary matrix entry
         matrix_entry = {
             "TestId": case_key,
             "TestCaseId": case["TestCaseId"],
@@ -385,13 +432,12 @@ def run_evaluation_suite():
         }
         matrix_results.append(matrix_entry)
 
-        # Record detailed execution trace
         case_execution = {
             "TestId": case_key,
             "TestCaseId": case["TestCaseId"],
             "Description": case["Description"],
             "Category": case["Category"],
-            "InputEvents": events,
+            "InputEvents": [normalize_event(e) for e in events],
             "CanonicalEvaluation": {
                 "Engine": "Sigma Correlation 2.1.0 (CORR-DET01) / Splunk streamstats",
                 "GroupingKeys": ["TargetUserName", "IpAddress", "Computer"],
@@ -424,8 +470,7 @@ def run_evaluation_suite():
     print(f"Suite Summary: {full_execution_proof['SuitePassCount']}/{len(suite)} Test Cases Passed ({full_execution_proof['SuiteFailCount']} Failed)")
     print("=" * 70)
 
-    # Output paths
-    evidence_dir = "evidence/detections"
+    evidence_dir = os.path.join("evidence", "detections")
     os.makedirs(evidence_dir, exist_ok=True)
 
     matrix_file = os.path.join(evidence_dir, "ev-det-01-boundary-matrix.json")
