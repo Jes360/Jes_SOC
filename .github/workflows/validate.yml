@@ -62,6 +62,8 @@ jobs:
           python tests/runners/eval_det03_engine.py
           echo "Executing DET-04 detection evaluation engine and boundary suite..."
           python tests/runners/eval_det04_engine.py
+          echo "Executing SCEN-01 integrated end-to-end scenario evaluation engine..."
+          python tests/runners/eval_e2e_scenario.py
 
       - name: PowerShell Script Syntax Validation
         shell: pwsh

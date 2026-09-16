@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.4.0-phase3] - 2026-09-16
+### Added
+- **SCEN-01 Specification:** Authored comprehensive scenario documentation `docs/scenarios/SCEN-01-compromise-to-lateral-movement.md` detailing the 4-stage intrusion lifecycle (`APT-LAB-01`), MITRE ATT&CK coverage (`T1110.001`, `T1078.003`, `T1059.001`, `T1027`, `T1021.002`), chronological 180-second telemetry timeline, alert fusion incident model (`INC-2026-001`), and scope limitations `SL-15` and `SL-16`.
+- **Integrated Test Harness:** Created `tests/integration/test_e2e_threat_scenario.ps1` orchestrating the sequential execution of all 4 attack stages under strictly benign OS operations.
+- **Integrated Evaluation Engine:** Authored `tests/runners/eval_e2e_scenario.py` evaluating 3 primary end-to-end integration scenarios:
+  - `TC-E2E-001`: Full True Positive 4-stage intrusion chain asserting temporal ordering ($t_1 \le t_2 \le t_3 \le t_4$) across `DET-01-PRIM`, `DET-02-PRIM`, `CORR-01`, `DET-03`, and `DET-04`.
+  - `TC-E2E-002`: Broken attack chain verifying that credential brute-force without subsequent logon success leaves `CORR-01` strictly silent.
+  - `TC-E2E-003`: Benign operational noise verifying that unencoded PowerShell and standard user share access (`PublicReports`) suppress `DET-03` and `DET-04`.
+- **Committed Forensic Evidence:** Generated sanitized scenario evidence `evidence/scenarios/ev-scen-01-boundary-matrix.json`, `ev-scen-01-execution-proof.json`, and `ev-scen-01-timeline.json`.
+- **CI Quality Gate Expansion:** Wired `eval_e2e_scenario.py` into `.github/workflows/validate.yml`, expanding total automated CI test battery to **41 / 41 test cases**.
+- **Traceability Updates:** Promoted `FR-05` (Negative Testing & FP Suppression) and `T1021.002` (DET-04) to `VALIDATED` in `docs/traceability-matrix.md`.
+
 ## [0.3.4-det04] - 2026-09-16
 ### Added
 - **DET-04 Specification:** Authored complete 23-section detection specification `docs/detections/DET-04-windows-smb-admin-shares.md` defining the SMB administrative share access detection (`DET-04`), ATT&CK `T1021.002` (Remote Services: SMB/Windows Admin Shares) mapping, scope limitations `SL-12`, `SL-13`, and `SL-14`, and 5-stage SOC triage playbook.

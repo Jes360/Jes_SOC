@@ -1,0 +1,68 @@
+[
+  {
+    "TestCaseId": "TC-E2E-001",
+    "Description": "Full True Positive 4-Stage Intrusion Sequence",
+    "TotalEvents": 9,
+    "Expected": {
+      "DET-01-PRIM": true,
+      "DET-02-PRIM": true,
+      "CORR-01": true,
+      "DET-03": true,
+      "DET-04": true,
+      "SequenceOrdered": true
+    },
+    "Actual": {
+      "DET-01-PRIM": true,
+      "DET-02-PRIM": true,
+      "CORR-01": true,
+      "DET-03": true,
+      "DET-04": true,
+      "SequenceOrdered": true
+    },
+    "Verdict": "PASS"
+  },
+  {
+    "TestCaseId": "TC-E2E-002",
+    "Description": "Broken Attack Chain (Brute Force Only, Zero Logon Success)",
+    "TotalEvents": 5,
+    "Expected": {
+      "DET-01-PRIM": true,
+      "DET-02-PRIM": false,
+      "CORR-01": false,
+      "DET-03": false,
+      "DET-04": false,
+      "SequenceOrdered": true
+    },
+    "Actual": {
+      "DET-01-PRIM": true,
+      "DET-02-PRIM": false,
+      "CORR-01": false,
+      "DET-03": false,
+      "DET-04": false,
+      "SequenceOrdered": true
+    },
+    "Verdict": "PASS"
+  },
+  {
+    "TestCaseId": "TC-E2E-003",
+    "Description": "Benign Operational Noise (Unencoded PowerShell + Non-Admin Share)",
+    "TotalEvents": 2,
+    "Expected": {
+      "DET-01-PRIM": false,
+      "DET-02-PRIM": false,
+      "CORR-01": false,
+      "DET-03": false,
+      "DET-04": false,
+      "SequenceOrdered": true
+    },
+    "Actual": {
+      "DET-01-PRIM": false,
+      "DET-02-PRIM": false,
+      "CORR-01": false,
+      "DET-03": false,
+      "DET-04": false,
+      "SequenceOrdered": true
+    },
+    "Verdict": "PASS"
+  }
+]
