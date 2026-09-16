@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.3.2-corr01] - 2026-09-16
+### Added
+- **CORR-01 Specification:** Authored complete 23-section detection specification `docs/correlations/CORR-01-mr_bruteforce_after_failures.md` defining the composite multi-event correlation rule (`CORR-01`), ATT&CK `T1110.001` and `T1078.003` mappings, scope limitations `SL-06`, `SL-07`, and `SL-08`, and 5-stage SOC triage checklist.
+- **Canonical Sigma 2.1.0 Correlation:** Created `correlations/mr_bruteforce_after_failures.yml` (`level: critical`, `action: correlation`, `type: temporal`, `ordered: true`) correlating >= 5 Event 4625 failures followed by >= 1 Event 4624 success within a 5-minute sliding window grouped by `TargetUserName` and `IpAddress`.
+- **Derived SIEM Translations:** Built `detections/splunk/mr_bruteforce_after_failures.spl` (using `transaction maxspan=5m startswith/endswith`) and `detections/kql/mr_bruteforce_after_failures.kql` (using Sentinel inner join bounded by `SuccessTime between (LastFailure .. LastFailure + 5m)`).
+- **Automated Evaluation Engine & Boundary Suite:** Implemented `tests/runners/eval_corr01_engine.py` and `tests/test_corr01_boundary_suite.ps1` evaluating authentic LSASS Records 80211-80216 (`TC-AUTH-003`) and 7 boundary conditions (`TC-POS-003`, `TC-NEG-007` through `TC-NEG-012`), generating `evidence/correlations/ev-corr-01-boundary-matrix.json` and `ev-corr-01-execution-proof.json`.
+- **CI Pipeline Integration:** Integrated `eval_corr01_engine.py` into `.github/workflows/validate.yml` under GitHub Actions.
+- **Traceability Updates:** Promoted `FR-01` and `T1078.003` to `VALIDATED` in `docs/traceability-matrix.md`; advanced `FR-04` to `IMPLEMENTED` with full lineage.
+
 ## [0.3.1-det02] - 2026-09-15
 ### Added
 - **DET-02 Specification:** Authored complete 23-section detection specification `docs/detections/DET-02-windows-successful-logon.md` defining the network authentication success primitive (`DET-02-PRIM`), ATT&CK `T1078.003` mapping, scope limitations `SL-04` and `SL-05`, and downstream correlation role (`CORR-01`).

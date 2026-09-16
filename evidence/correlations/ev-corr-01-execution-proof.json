@@ -1,0 +1,165 @@
+{
+  "RuleMetadata": {
+    "CorrelationId": "CORR-01",
+    "RuleName": "mr_bruteforce_after_failures",
+    "CanonicalSigmaPath": "correlations/mr_bruteforce_after_failures.yml",
+    "SpecificationPath": "docs/correlations/CORR-01-mr_bruteforce_after_failures.md",
+    "CorrelationType": "temporal",
+    "Ordered": true,
+    "GroupBy": [
+      "TargetUserName",
+      "IpAddress"
+    ],
+    "TimespanSeconds": 300,
+    "MinFailureThreshold": 5,
+    "MinSuccessThreshold": 1,
+    "Level": "critical",
+    "MitreTechniques": [
+      "T1110.001",
+      "T1078.003"
+    ]
+  },
+  "TimestampUtc": "2026-09-16T01:44:34.115669+00:00",
+  "OverallVerdict": "PASS",
+  "TotalTests": 8,
+  "PassedTests": 8,
+  "FailedTests": 0,
+  "Results": [
+    {
+      "TestCaseId": "TC-AUTH-003",
+      "Category": "AUTHENTIC_GROUND_TRUTH",
+      "Description": "Authentic Windows LSASS Event 4625 (80211-80215) followed by Event 4624 (80216)",
+      "ExpectedState": "MATCH",
+      "ActualState": "MATCH",
+      "Verdict": "PASS",
+      "Reason": "Detected 1 correlation match(es) meeting >= 5 failures followed by success within 5m.",
+      "BoundaryRationale": "Authentic LSASS event sequence with 5 failed logons followed by valid logon for lab_user_test within 3s.",
+      "EventCount": 6,
+      "Matches": [
+        {
+          "TargetUserName": "lab_user_test",
+          "IpAddress": "127.0.0.1",
+          "SuccessRecordId": 80216,
+          "SuccessTime": "2026-09-14T12:22:30.500Z",
+          "PrecedingFailureCount": 5,
+          "FirstFailureTime": "2026-09-14T12:22:28.120Z",
+          "LastFailureTime": "2026-09-14T12:22:29.160Z",
+          "TotalSpanSeconds": 2.38,
+          "FailureToSuccessDeltaSeconds": 1.34,
+          "FailureRecordIds": [
+            80211,
+            80212,
+            80213,
+            80214,
+            80215
+          ]
+        }
+      ]
+    },
+    {
+      "TestCaseId": "TC-POS-003",
+      "Category": "CONTROLLED_SIMULATION_ABOVE_THRESHOLD",
+      "Description": "Controlled simulation of 7 failed logons followed by 1 successful logon (< 5m)",
+      "ExpectedState": "MATCH",
+      "ActualState": "MATCH",
+      "Verdict": "PASS",
+      "Reason": "Detected 1 correlation match(es) meeting >= 5 failures followed by success within 5m.",
+      "BoundaryRationale": "Above-threshold brute-force attack (7 >= 5) followed by success from identical source and target.",
+      "EventCount": 8,
+      "Matches": [
+        {
+          "TargetUserName": "analyst_target",
+          "IpAddress": "192.0.2.55",
+          "SuccessRecordId": 1007,
+          "SuccessTime": "2026-09-16T12:01:20+00:00",
+          "PrecedingFailureCount": 7,
+          "FirstFailureTime": "2026-09-16T12:00:00+00:00",
+          "LastFailureTime": "2026-09-16T12:01:00+00:00",
+          "TotalSpanSeconds": 80.0,
+          "FailureToSuccessDeltaSeconds": 20.0,
+          "FailureRecordIds": [
+            1000,
+            1001,
+            1002,
+            1003,
+            1004,
+            1005,
+            1006
+          ]
+        }
+      ]
+    },
+    {
+      "TestCaseId": "TC-NEG-007",
+      "Category": "BOUNDARY_UNDER_THRESHOLD",
+      "Description": "Boundary test with 4 failed logons (threshold is 5) followed by successful logon",
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "Verdict": "PASS",
+      "Reason": "Correlation conditions not met (insufficient failures, ordering violation, user/IP divergence, or time window exceeded).",
+      "BoundaryRationale": "Boundary N-1 failure condition; must suppress correlation alert to prevent false positives on typical typos.",
+      "EventCount": 5,
+      "Matches": []
+    },
+    {
+      "TestCaseId": "TC-NEG-008",
+      "Category": "FAILURES_WITHOUT_SUCCESS",
+      "Description": "10 consecutive failed logons with no subsequent successful logon",
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "Verdict": "PASS",
+      "Reason": "Correlation conditions not met (insufficient failures, ordering violation, user/IP divergence, or time window exceeded).",
+      "BoundaryRationale": "Unsuccessful brute force triggers atomic threshold rule (DET-01-PRIM), but must NOT trigger CORR-01 (no compromise).",
+      "EventCount": 10,
+      "Matches": []
+    },
+    {
+      "TestCaseId": "TC-NEG-009",
+      "Category": "SUCCESS_WITHOUT_FAILURES",
+      "Description": "Standard successful network authentication with 0 prior failures",
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "Verdict": "PASS",
+      "Reason": "Correlation conditions not met (insufficient failures, ordering violation, user/IP divergence, or time window exceeded).",
+      "BoundaryRationale": "Ambient legitimate logon triggers DET-02-PRIM primitive only, suppressed by CORR-01.",
+      "EventCount": 1,
+      "Matches": []
+    },
+    {
+      "TestCaseId": "TC-NEG-010",
+      "Category": "SEQUENCE_ORDERING_VIOLATION",
+      "Description": "1 successful logon followed chronologically by 5 failed logons",
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "Verdict": "PASS",
+      "Reason": "Correlation conditions not met (insufficient failures, ordering violation, user/IP divergence, or time window exceeded).",
+      "BoundaryRationale": "Fails ordered: true requirement (failures must precede success, not follow it).",
+      "EventCount": 6,
+      "Matches": []
+    },
+    {
+      "TestCaseId": "TC-NEG-011",
+      "Category": "GROUPING_USER_MISMATCH",
+      "Description": "5 failures on 'user_alpha' followed by success on 'user_bravo' from same IP",
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "Verdict": "PASS",
+      "Reason": "Correlation conditions not met (insufficient failures, ordering violation, user/IP divergence, or time window exceeded).",
+      "BoundaryRationale": "Fails group-by TargetUserName constraint (different identities cannot satisfy single-account compromise correlation).",
+      "EventCount": 6,
+      "Matches": []
+    },
+    {
+      "TestCaseId": "TC-NEG-012",
+      "Category": "TEMPORAL_WINDOW_EXPIRY",
+      "Description": "5 failures followed by 1 success after 10 minutes (exceeds 5m timespan)",
+      "ExpectedState": "NO_MATCH",
+      "ActualState": "NO_MATCH",
+      "Verdict": "PASS",
+      "Reason": "Correlation conditions not met (insufficient failures, ordering violation, user/IP divergence, or time window exceeded).",
+      "BoundaryRationale": "Fails timespan: 5m constraint; time difference exceeds correlation window.",
+      "EventCount": 6,
+      "Matches": []
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+title: Successful Network Logon After Brute Force Authentication Failures
+name: mr_bruteforce_after_failures
+id: e5a1b2c3-4d5e-6f70-8192-a3b4c5d6e7f8
+status: experimental
+description: |
+  Correlates multiple Windows network authentication failures (Event 4625, LogonType 3)
+  followed by a successful network authentication (Event 4624, LogonType 3) targeting
+  the same account from the same network source within a 5-minute window.
+  Indicates potential credential guessing or brute-force attack culminating in
+  successful account compromise.
+references:
+  - https://attack.mitre.org/techniques/T1110/001/
+  - https://attack.mitre.org/techniques/T1078/003/
+  - https://github.com/SigmaHQ/sigma-specification/blob/main/correlation-specification.md
+author: JestineSOC Detection Engineering Team
+date: 2026-09-16
+modified: 2026-09-16
+tags:
+  - attack.credential-access
+  - attack.t1110.001
+  - attack.initial-access
+  - attack.t1078.003
+action: correlation
+type: temporal
+correlation:
+  type: temporal
+  rules:
+    - windows_failed_logon
+    - windows_successful_logon
+  group-by:
+    - TargetUserName
+    - IpAddress
+  timespan: 5m
+  ordered: true
+  condition:
+    - windows_failed_logon | count() >= 5
+    - windows_successful_logon | count() >= 1
+level: critical
+falsepositives:
+  - Legitimate user mistyping their password repeatedly before successfully remembering and logging in
+  - System administrator troubleshooting account authentication or service connectivity

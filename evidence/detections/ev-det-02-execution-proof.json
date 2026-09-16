@@ -1,6 +1,6 @@
 {
   "Engine": "JestineSOC DET-02 Primitive Evaluation Runtime v1.0",
-  "EvaluatedAt": "2026-09-15T06:10:00.270499+00:00",
+  "EvaluatedAt": "2026-09-16T01:44:34.020475+00:00",
   "DetectionPrimitives": {
     "DET-02-PRIM": "detections/sigma/windows_successful_logon.yml",
     "SPL": "detections/splunk/windows_successful_logon.spl",
@@ -45,7 +45,7 @@
       "InputEvent": {
         "RecordId": 81001,
         "EventID": 4624,
-        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TimeCreated": "2026-09-16T01:44:34.019480+00:00",
         "TargetUserName": "lab_user_test",
         "TargetDomainName": "LAB",
         "LogonType": 3,
@@ -71,7 +71,7 @@
       "InputEvent": {
         "RecordId": 81002,
         "EventID": 4625,
-        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TimeCreated": "2026-09-16T01:44:34.019480+00:00",
         "TargetUserName": "lab_user_test",
         "TargetDomainName": "LAB",
         "LogonType": 3,
@@ -97,7 +97,7 @@
       "InputEvent": {
         "RecordId": 81003,
         "EventID": 4624,
-        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TimeCreated": "2026-09-16T01:44:34.019480+00:00",
         "TargetUserName": "lab_user_test",
         "TargetDomainName": "LAB",
         "LogonType": 2,
@@ -123,7 +123,7 @@
       "InputEvent": {
         "RecordId": 81004,
         "EventID": 4624,
-        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TimeCreated": "2026-09-16T01:44:34.019480+00:00",
         "TargetUserName": "LAB-SRV01$",
         "TargetDomainName": "LAB",
         "LogonType": 3,
@@ -149,7 +149,7 @@
       "InputEvent": {
         "RecordId": 81005,
         "EventID": 4624,
-        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TimeCreated": "2026-09-16T01:44:34.019480+00:00",
         "TargetUserName": "SYSTEM",
         "TargetDomainName": "NT AUTHORITY",
         "LogonType": 3,
@@ -175,7 +175,7 @@
       "InputEvent": {
         "RecordId": 81006,
         "EventID": 4624,
-        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TimeCreated": "2026-09-16T01:44:34.019480+00:00",
         "TargetUserName": "ANONYMOUS LOGON",
         "TargetDomainName": "NT AUTHORITY",
         "LogonType": 3,
@@ -201,7 +201,7 @@
       "InputEvent": {
         "RecordId": 81007,
         "EventID": 4624,
-        "TimeCreated": "2026-09-15T06:10:00.270499+00:00",
+        "TimeCreated": "2026-09-16T01:44:34.019480+00:00",
         "TargetUserName": "LOCAL SERVICE",
         "TargetDomainName": "NT AUTHORITY",
         "LogonType": 3,

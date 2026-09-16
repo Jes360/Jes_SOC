@@ -1,0 +1,78 @@
+// ==============================================================================
+// Detection: Successful Network Logon After Brute Force Authentication Failures (CORR-01)
+// Canonical Source: correlations/mr_bruteforce_after_failures.yml
+// Target Platform: Microsoft Sentinel / Microsoft Defender for Cloud
+// Table: SecurityEvent
+// MITRE ATT&CK: T1110.001 (Brute Force: Password Guessing), T1078.003 (Valid Accounts: Local Accounts)
+// Severity: Critical
+// ==============================================================================
+//
+// ARCHITECTURAL CORRELATION MAPPING:
+// ------------------------------------------------------------------------------
+// 1. Sigma Intent:
+//    Correlates >= 5 network failed logons (Event 4625, LogonType 3) followed by
+//    >= 1 successful network logon (Event 4624, LogonType 3) targeting the same
+//    account from the same source IP within a 5-minute temporal window.
+//
+// 2. KQL Implementation Approach:
+//    - Stage 1 (Failures): Aggregates Event 4625 records over lookback window,
+//      filtering for >= 5 failures per (TargetAccount, IpAddress).
+//    - Stage 2 (Success): Filters Event 4624 records for LogonType 3, non-machine accounts.
+//    - Stage 3 (Join & Time Boundary): Inner join on TargetAccount and IpAddress,
+//      enforcing that SuccessTime occurs after the first failure and within 5 minutes
+//      of the latest failure: SuccessTime between (LastFailureTime .. LastFailureTime + 5m).
+//
+// 3. Operational Tuning & Noise Filtering:
+//    Machine accounts ($ suffix) and built-in service accounts are filtered out.
+// ==============================================================================
+
+let lookback = 1h;
+let window = 5m;
+let threshold = 5;
+// 1. Identify failure bursts
+let FailedLogons = SecurityEvent
+| where TimeGenerated >= ago(lookback)
+| where EventID == 4625
+| where LogonType == 3
+| where not(TargetAccount endswith "$")
+| where not(TargetAccount in~ ("SYSTEM", "ANONYMOUS LOGON", "LOCAL SERVICE", "NETWORK SERVICE", "", "-"))
+| summarize 
+    FailureCount = count(),
+    FirstFailureTime = min(TimeGenerated),
+    LastFailureTime = max(TimeGenerated),
+    FailureComputer = any(Computer)
+    by TargetAccount, IpAddress
+| where FailureCount >= threshold;
+// 2. Identify successful logons
+let SuccessfulLogons = SecurityEvent
+| where TimeGenerated >= ago(lookback)
+| where EventID == 4624
+| where LogonType == 3
+| where not(TargetAccount endswith "$")
+| where not(TargetAccount in~ ("SYSTEM", "ANONYMOUS LOGON", "LOCAL SERVICE", "NETWORK SERVICE", "", "-"))
+| project 
+    SuccessTime = TimeGenerated,
+    TargetAccount,
+    IpAddress,
+    SuccessComputer = Computer,
+    TargetDomainName,
+    Activity;
+// 3. Correlate failures followed by success
+FailedLogons
+| join kind=inner (SuccessfulLogons) on TargetAccount, IpAddress
+| where SuccessTime >= LastFailureTime and SuccessTime <= (LastFailureTime + window)
+| extend TimeDeltaSeconds = datetime_diff('second', SuccessTime, LastFailureTime)
+| project 
+    FirstFailureTime,
+    LastFailureTime,
+    SuccessTime,
+    TimeDeltaSeconds,
+    TargetAccount,
+    IpAddress,
+    FailureComputer,
+    SuccessComputer,
+    FailureCount,
+    TargetDomainName,
+    Activity,
+    AlertSeverity = "Critical",
+    MitreTechniques = "T1110.001, T1078.003"
