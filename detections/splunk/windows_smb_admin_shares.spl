@@ -1,0 +1,37 @@
+// ==============================================================================
+// Detection: Network Share Access to Windows Administrative Shares (DET-04)
+// Canonical Source: detections/sigma/windows_smb_admin_shares.yml
+// Target Platform: Splunk Enterprise / Splunk Cloud
+// Technology Add-on: Splunk_TA_windows / Splunk_TA_sysmon
+// MITRE ATT&CK: T1021.002 (Remote Services: SMB/Windows Admin Shares)
+// Severity: High
+// ==============================================================================
+//
+// ARCHITECTURAL TRANSLATION MAPPING:
+// ------------------------------------------------------------------------------
+// 1. Sigma Intent:
+//    Detects access to administrative network shares (C$, ADMIN$, IPC$) or direct
+//    SMB connections on port 445 by non-machine and non-system accounts.
+//
+// 2. Splunk Implementation:
+//    Evaluates Security EventCode 5140/5145 (ShareName) and Sysmon EventCode 3 (DestPort 445).
+//    Excludes machine accounts (*$) and well-known Windows system service accounts.
+// ==============================================================================
+
+(
+  (index=winsec source="XmlWinEventLog:Security" (EventCode=5140 OR EventCode=5145)
+   (ShareName="*\\C$" OR ShareName="*\\ADMIN$" OR ShareName="*\\IPC$" OR RelativeTargetName="*C$*" OR RelativeTargetName="*ADMIN$*"))
+  OR
+  (index=sysmon source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=3 DestinationPort=445)
+)
+NOT (
+  Account_Name="*$" OR User="*$" OR
+  Account_Name="SYSTEM" OR Account_Name="ANONYMOUS LOGON" OR Account_Name="LOCAL SERVICE" OR Account_Name="NETWORK SERVICE" OR
+  User="NT AUTHORITY\\SYSTEM" OR User="NT AUTHORITY\\ANONYMOUS LOGON" OR User="NT AUTHORITY\\LOCAL SERVICE" OR User="NT AUTHORITY\\NETWORK SERVICE" OR
+  Account_Name="-" OR Account_Name=""
+)
+| eval UserIdentity=coalesce(Account_Name, User, user)
+| eval TargetShare=coalesce(ShareName, RelativeTargetName, "SMB_Direct_Port_445")
+| eval SourceAddress=coalesce(IpAddress, SourceIp, source_ip)
+| stats min(_time) as FirstSeen max(_time) as LastSeen count by Computer, UserIdentity, TargetShare, SourceAddress
+| eval AlertSeverity="High", MitreTechniques="T1021.002"

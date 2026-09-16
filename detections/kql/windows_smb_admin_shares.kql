@@ -1,0 +1,43 @@
+// ==============================================================================
+// Detection: Network Share Access to Windows Administrative Shares (DET-04)
+// Canonical Source: detections/sigma/windows_smb_admin_shares.yml
+// Target Platform: Microsoft Sentinel / Microsoft Defender for Cloud
+// Tables: SecurityEvent (5140/5145) / Event (Sysmon 3) / DeviceNetworkEvents
+// MITRE ATT&CK: T1021.002 (Remote Services: SMB/Windows Admin Shares)
+// Severity: High
+// ==============================================================================
+//
+// ARCHITECTURAL TRANSLATION MAPPING:
+// ------------------------------------------------------------------------------
+// 1. Sigma Intent:
+//    Matches administrative share access (C$, ADMIN$, IPC$) or direct SMB traffic (port 445).
+//
+// 2. KQL Implementation:
+//    Unions SecurityEvent share access records (5140/5145) with Sysmon network events.
+//    Filters out machine identities ($ suffix) and system accounts.
+// ==============================================================================
+
+let lookback = 24h;
+let systemAccounts = dynamic(["SYSTEM", "ANONYMOUS LOGON", "LOCAL SERVICE", "NETWORK SERVICE", "NT AUTHORITY\\SYSTEM", "NT AUTHORITY\\ANONYMOUS LOGON", "-", ""]);
+// 1. Windows Security Share Access (5140 / 5145)
+let ShareAccess = SecurityEvent
+| where TimeGenerated >= ago(lookback)
+| where EventID in (5140, 5145)
+| where ShareName has_any (@"\C$", @"\ADMIN$", @"\IPC$")
+| where not(TargetAccount endswith "$")
+| where not(TargetAccount in~ (systemAccounts))
+| project TimeGenerated, Computer, Account = TargetAccount, TargetShare = ShareName, SourceAddress = IpAddress, TableSource = "Security_ShareAccess";
+// 2. Sysmon SMB Network Connections (EventID == 3, Port 445)
+let SysmonSMB = Event
+| where TimeGenerated >= ago(lookback)
+| where Source == "Microsoft-Windows-Sysmon" and EventID == 3
+| extend DestPort = toint(parse_xml(EventData).Data[17]["#text"])
+| extend UserName = tostring(parse_xml(EventData).Data[6]["#text"])
+| extend SrcIp = tostring(parse_xml(EventData).Data[10]["#text"])
+| where DestPort == 445
+| where not(UserName endswith "$")
+| where not(UserName in~ (systemAccounts))
+| project TimeGenerated, Computer, Account = UserName, TargetShare = "SMB_Port_445", SourceAddress = SrcIp, TableSource = "Sysmon_Event3";
+union isfuzzy=true ShareAccess, SysmonSMB
+| summarize min(TimeGenerated), max(TimeGenerated), count() by Computer, Account, TargetShare, SourceAddress, TableSource
+| extend AlertSeverity = "High", MitreTechniques = "T1021.002"

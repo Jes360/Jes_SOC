@@ -1,0 +1,16 @@
+{
+    "TestCaseId":  "TC-POS-006",
+    "Generator":  "gen-smb-events.ps1",
+    "ExecutionTimestamp":  "2026-09-16T12:06:49.9992209+10:00",
+    "TargetShares":  [
+                         "C$",
+                         "ADMIN$",
+                         "IPC$"
+                     ],
+    "Protocol":  "SMB (TCP 445)",
+    "LoopbackTarget":  "127.0.0.1",
+    "ExitCode":  0,
+    "Host":  "LAB-HOST01",
+    "SafetyStandard":  "Strictly Benign Lab Simulation (No Remote Code Execution)",
+    "SanitizationStandard":  "RFC 5737 / Local Loopback Compliant (NFR-03)"
+}

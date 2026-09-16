@@ -1,0 +1,114 @@
+[
+  {
+    "TestCaseId": "TC-AUTH-005",
+    "Category": "AUTHENTIC_SYSMON_INGESTION",
+    "Description": "Authentic Sysmon Event 3 network connection on SMB port 445",
+    "ExpectedState": "MATCH",
+    "ActualState": "MATCH",
+    "Verdict": "PASS",
+    "Reason": "Direct SMB connection on port 445 initiated by user 'LAB-HOST01\\lab_user_test'.",
+    "BoundaryRationale": "Authentic Sysmon record from sysmon-sample.json must match DET-04 criteria.",
+    "EventSample": {
+      "EventID": 3,
+      "ShareName": null,
+      "DestinationPort": "445",
+      "User": "LAB-HOST01\\lab_user_test"
+    }
+  },
+  {
+    "TestCaseId": "TC-POS-006",
+    "Category": "SECURITY_5140_C_SHARE",
+    "Description": "Security Event 5140 access to administrative share \\\\*\\C$",
+    "ExpectedState": "MATCH",
+    "ActualState": "MATCH",
+    "Verdict": "PASS",
+    "Reason": "Administrative share '\\\\*\\C$' accessed by user 'lab_user_test'.",
+    "BoundaryRationale": "Access to C$ share by standard user represents administrative access / lateral movement.",
+    "EventSample": {
+      "EventID": 5140,
+      "ShareName": "\\\\*\\C$",
+      "DestinationPort": null,
+      "User": "lab_user_test"
+    }
+  },
+  {
+    "TestCaseId": "TC-POS-007",
+    "Category": "SECURITY_5140_ADMIN_SHARE",
+    "Description": "Security Event 5140 access to administrative share \\\\*\\ADMIN$",
+    "ExpectedState": "MATCH",
+    "ActualState": "MATCH",
+    "Verdict": "PASS",
+    "Reason": "Administrative share '\\\\*\\ADMIN$' accessed by user 'lab_user_test'.",
+    "BoundaryRationale": "Access to ADMIN$ share by standard user represents administrative access / lateral movement.",
+    "EventSample": {
+      "EventID": 5140,
+      "ShareName": "\\\\*\\ADMIN$",
+      "DestinationPort": null,
+      "User": "lab_user_test"
+    }
+  },
+  {
+    "TestCaseId": "TC-NEG-017",
+    "Category": "NON_ADMIN_SHARE_FILTER",
+    "Description": "Security Event 5140 access to non-administrative share (\\\\*\\PublicReports)",
+    "ExpectedState": "NO_MATCH",
+    "ActualState": "NO_MATCH",
+    "Verdict": "PASS",
+    "Reason": "ShareName '\\\\*\\PublicReports' is not an administrative share (C$, ADMIN$, IPC$).",
+    "BoundaryRationale": "Standard non-administrative shares do not match C$, ADMIN$, or IPC$ filter; must suppress alert.",
+    "EventSample": {
+      "EventID": 5140,
+      "ShareName": "\\\\*\\PublicReports",
+      "DestinationPort": null,
+      "User": "lab_user_test"
+    }
+  },
+  {
+    "TestCaseId": "TC-NEG-018",
+    "Category": "MACHINE_ACCOUNT_FILTER",
+    "Description": "Machine account 'LAB-SRV01$' access to administrative share C$",
+    "ExpectedState": "NO_MATCH",
+    "ActualState": "NO_MATCH",
+    "Verdict": "PASS",
+    "Reason": "User 'LAB-SRV01$' is a machine account; suppressed by filter_machine_share.",
+    "BoundaryRationale": "Machine accounts ($ suffix) must be suppressed to avoid domain replication noise.",
+    "EventSample": {
+      "EventID": 5140,
+      "ShareName": "\\\\*\\C$",
+      "DestinationPort": null,
+      "User": "LAB-SRV01$"
+    }
+  },
+  {
+    "TestCaseId": "TC-NEG-019",
+    "Category": "CHANNEL_FILTER",
+    "Description": "Standard Windows logon event (Event 4624) without share access",
+    "ExpectedState": "NO_MATCH",
+    "ActualState": "NO_MATCH",
+    "Verdict": "PASS",
+    "Reason": "EventID 4624 is not a valid share access or network connection event.",
+    "BoundaryRationale": "Event 4624 is a logon event, not share access or network connect; must be rejected.",
+    "EventSample": {
+      "EventID": 4624,
+      "ShareName": null,
+      "DestinationPort": null,
+      "User": null
+    }
+  },
+  {
+    "TestCaseId": "TC-NEG-020",
+    "Category": "PORT_FILTER",
+    "Description": "Sysmon Event 3 network connection on HTTPS port 443",
+    "ExpectedState": "NO_MATCH",
+    "ActualState": "NO_MATCH",
+    "Verdict": "PASS",
+    "Reason": "DestinationPort '443' is not SMB (Port 445).",
+    "BoundaryRationale": "Port 443 is HTTPS web traffic, not SMB port 445; must be rejected.",
+    "EventSample": {
+      "EventID": 3,
+      "ShareName": null,
+      "DestinationPort": 443,
+      "User": "LAB-HOST01\\lab_user_test"
+    }
+  }
+]

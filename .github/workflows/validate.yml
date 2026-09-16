@@ -60,6 +60,8 @@ jobs:
           python tests/runners/eval_corr01_engine.py
           echo "Executing DET-03 detection evaluation engine and boundary suite..."
           python tests/runners/eval_det03_engine.py
+          echo "Executing DET-04 detection evaluation engine and boundary suite..."
+          python tests/runners/eval_det04_engine.py
 
       - name: PowerShell Script Syntax Validation
         shell: pwsh

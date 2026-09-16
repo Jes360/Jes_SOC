@@ -1,0 +1,65 @@
+title: Network Share Access to Windows Administrative Shares
+id: a4b2c1d0-9e8f-4a5b-b6c7-1e2d3f4a5b04
+status: test
+description: |
+  Detects access to Windows administrative network shares (C$, ADMIN$, IPC$)
+  by non-machine and non-system accounts, or direct SMB network connections
+  on port 445. Adversaries routinely utilize administrative shares for lateral
+  movement, remote service execution, and file staging.
+references:
+  - https://attack.mitre.org/techniques/T1021/002/
+author: JestineSOC Detection Engineering Team
+date: 2026-09-16
+modified: 2026-09-16
+tags:
+  - attack.lateral-movement
+  - attack.t1021.002
+logsource:
+  product: windows
+detection:
+  selection_share:
+    EventID:
+      - 5140
+      - 5145
+    ShareName|contains:
+      - '\C$'
+      - '\ADMIN$'
+      - '\IPC$'
+  selection_sysmon:
+    EventID: 3
+    DestinationPort: 445
+  filter_machine_share:
+    SubjectUserName|endswith: '$'
+  filter_system_share:
+    SubjectUserName:
+      - 'SYSTEM'
+      - 'ANONYMOUS LOGON'
+      - 'LOCAL SERVICE'
+      - 'NETWORK SERVICE'
+      - '-'
+      - ''
+  filter_machine_sysmon:
+    User|endswith: '$'
+  filter_system_sysmon:
+    User:
+      - 'NT AUTHORITY\SYSTEM'
+      - 'NT AUTHORITY\ANONYMOUS LOGON'
+      - 'NT AUTHORITY\LOCAL SERVICE'
+      - 'NT AUTHORITY\NETWORK SERVICE'
+      - 'SYSTEM'
+      - '-'
+      - ''
+  condition: (selection_share and not filter_machine_share and not filter_system_share) or (selection_sysmon and not filter_machine_sysmon and not filter_system_sysmon)
+fields:
+  - EventID
+  - ShareName
+  - SubjectUserName
+  - User
+  - IpAddress
+  - DestinationPort
+  - DestinationIp
+  - Computer
+falsepositives:
+  - Legitimate administrative tasks or remote management via tools like SCCM/MECM or PowerShell Remoting
+  - Routine system backup software accessing C$ for volume imaging
+level: high

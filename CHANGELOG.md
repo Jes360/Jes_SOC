@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.3.4-det04] - 2026-09-16
+### Added
+- **DET-04 Specification:** Authored complete 23-section detection specification `docs/detections/DET-04-windows-smb-admin-shares.md` defining the SMB administrative share access detection (`DET-04`), ATT&CK `T1021.002` (Remote Services: SMB/Windows Admin Shares) mapping, scope limitations `SL-12`, `SL-13`, and `SL-14`, and 5-stage SOC triage playbook.
+- **Canonical Sigma Rule:** Created `detections/sigma/windows_smb_admin_shares.yml` (`level: high`) targeting Security Event 5140/5145 (`ShareName` matching `*\\C$`, `*\\ADMIN$`, `*\\IPC$`) and Sysmon Event 3 (`DestinationPort: 445`), with system and machine account (`*$`) suppression.
+- **Derived SIEM Translations:** Built `detections/splunk/windows_smb_admin_shares.spl` and `detections/kql/windows_smb_admin_shares.kql` supporting multi-source union over Windows Security Share Access and Sysmon Network Connection events.
+- **Controlled Telemetry Generator:** Implemented `telemetry/generators/gen-smb-events.ps1` strictly adhering to the benign lab simulation policy (executing harmless share discovery `Get-SmbShare` and loopback `\\127.0.0.1\IPC$` connection).
+- **Automated Evaluation Engine & Boundary Suite:** Implemented `tests/runners/eval_det04_engine.py` and `tests/test_det04_boundary_suite.ps1` evaluating authentic Sysmon Event 3 (`TC-AUTH-005`) from `sysmon-sample.json` and 6 boundary conditions (`TC-POS-006`..`007`, `TC-NEG-017`..`020`), generating `evidence/detections/ev-det-04-boundary-matrix.json` and `ev-det-04-execution-proof.json`.
+- **CI Pipeline Integration:** Integrated `eval_det04_engine.py` into `.github/workflows/validate.yml` expanding automated test suite to 38 test cases.
+- **Traceability Updates:** Promoted `FR-02` and `T1059.001` (DET-03) to `VALIDATED`; advanced `T1021.002` (DET-04) to `IMPLEMENTED` with full empirical lineage.
+
 ## [0.3.3-det03] - 2026-09-16
 ### Added
 - **DET-03 Specification:** Authored complete 23-section detection specification `docs/detections/DET-03-windows-suspicious-powershell.md` defining the suspicious encoded execution primitive (`DET-03`), ATT&CK `T1059.001` and `T1027` mappings, scope limitations `SL-09`, `SL-10`, and `SL-11`, and 5-stage SOC triage playbook.
