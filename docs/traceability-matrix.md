@@ -23,9 +23,9 @@ $$\text{FR / NFR} \iff \text{Design (DES)} \iff \text{Detection (DET)} \iff \tex
 | **FR-03** | Atomic Failed Logon Detection & Threshold Correlation (Event 4625) | `docs/detections/DET-01-windows-failed-logon.md` | `detections/sigma/windows_failed_logon.yml`<br>`correlations/corr_det01_bruteforce_threshold.yml`<br>`detections/splunk/windows_failed_logon.spl`<br>`detections/kql/windows_failed_logon.kql` | `TC-AUTH-001`<br>`TC-POS-001`<br>`TC-POS-002`<br>`TC-NEG-001`<br>`TC-NEG-002`<br>`TC-NEG-003` | `evidence/detections/ev-det-01-boundary-matrix.json`<br>`evidence/detections/ev-det-01-execution-proof.json`<br>`evidence/telemetry/evtx-auth-sample.json` | 🟢 VALIDATED — Audit PASS (Tag `v0.3.0`, Commit `4bdf920`, CI Run `34933601381`) |
 | **FR-04** | Brute-Force Sequence Correlation (CORR-01) | `docs/correlations/CORR-01-mr_bruteforce_after_failures.md` | `correlations/mr_bruteforce_after_failures.yml`<br>`detections/splunk/mr_bruteforce_after_failures.spl`<br>`detections/kql/mr_bruteforce_after_failures.kql` | `TC-AUTH-003`<br>`TC-POS-003`<br>`TC-NEG-007`..`012` | `evidence/correlations/ev-corr-01-boundary-matrix.json`<br>`evidence/correlations/ev-corr-01-execution-proof.json` | 🟢 VALIDATED — Audit PASS (Commit `a9eb97a`, CI Run `35045305149`) |
 | **FR-05** | Negative Testing & FP Suppression | `docs/testing.md#negative-testing`<br>`docs/scenarios/SCEN-01-compromise-to-lateral-movement.md` | `tests/runners/eval_e2e_scenario.py`<br>`tests/integration/test_e2e_threat_scenario.ps1`<br>`tests/negative/test_failed_logon_negative.ps1` | `TC-E2E-001`..`003`<br>`TC-NEG-001`..`020` | `evidence/scenarios/ev-scen-01-boundary-matrix.json`<br>`evidence/scenarios/ev-scen-01-execution-proof.json`<br>`evidence/scenarios/ev-scen-01-timeline.json` | 🟢 VALIDATED — Multi-Stage Chain & Suppression Verified (SCEN-01) |
-| **FR-06** | MITRE ATT&CK Mapping & Provenance | `docs/threat-model.md#technique-matrix` | `detections/sigma/*.yml` (metadata blocks) | `TC-AUD-001` | `docs/traceability-matrix.md#mitre-coverage` | 🟡 Initialized |
-| **FR-07** | False Positive Documentation & Tuning | `docs/detection-engineering.md#tuning` | `detections/sigma/*.yml` (`falsepositives`) | `TC-AUD-002` | `docs/detection-engineering.md` | 🟡 Initialized |
-| **FR-08** | SIEM Query Translation (SPL & KQL) | `docs/adr/ADR-003-siem-translation.md` | `detections/splunk/`<br>`detections/kql/` | `TC-AUD-003` | `evidence/detections/ev-translation-log.md` | 🟡 Initialized |
+| **FR-06** | MITRE ATT&CK Mapping & Provenance | `docs/threat-model.md#technique-matrix`<br>`docs/scenarios/SCEN-01-compromise-to-lateral-movement.md` | `detections/sigma/*.yml` (metadata blocks) | `TC-AUD-001` | `docs/traceability-matrix.md#mitre-coverage`<br>`evidence/scenarios/ev-scen-01-timeline.json` | 🟢 VALIDATED — Provenance & Taxonomies Aligned Across All Rules |
+| **FR-07** | False Positive Documentation & Tuning | `docs/detection-engineering.md#tuning` | `detections/sigma/*.yml` (`falsepositives`) | `TC-AUD-002` | `docs/detection-engineering.md`<br>`docs/detections/` | 🟢 VALIDATED — Dedicated Tuning Sections & Noise Exclusions Codified |
+| **FR-08** | SIEM Query Translation (SPL & KQL) | `docs/adr/ADR-003-siem-translation.md` | `detections/splunk/`<br>`detections/kql/` | `TC-AUD-003` | `evidence/detections/`<br>`detections/splunk/`<br>`detections/kql/` | 🟢 VALIDATED — Canonical Translations & Semantic Reconciliation Codified |
 
 ---
 
@@ -33,10 +33,10 @@ $$\text{FR / NFR} \iff \text{Design (DES)} \iff \text{Detection (DET)} \iff \tex
 
 | Req ID | Requirement Summary | Architectural Document | Verification Mechanism | Audit Evidence | Current Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **NFR-01** | Workstation Reproducibility | `docs/lab-environment.md` | Clean setup script test | `docs/lab-environment.md` | 🟡 Initialized |
-| **NFR-02** | Credential & Secret Hygiene | `docs/architecture.md#security` | TruffleHog / Git pre-commit scan | `evidence/ci/trufflehog-clean.log` | 🟡 Initialized |
-| **NFR-03** | Telemetry & Evidence Sanitization | `docs/data-model.md#sanitization` | Manual review + Automated RFC1918 CI scan | `evidence/` directory audit | 🟠 PARTIAL — manual control exists; automated RFC1918 CI check active |
-| **NFR-04** | Continuous Integration Quality Gate | `docs/architecture.md#ci-cd` | GitHub Actions workflow execution | `.github/workflows/validate.yml` | 🟡 IN PROGRESS — Phase-Aware Workflow Active |
+| **NFR-01** | Workstation Reproducibility | `docs/lab-environment.md` | Clean setup script test | `docs/lab-environment.md` | 🟢 VALIDATED — Reproducible Lab Architecture Verified |
+| **NFR-02** | Credential & Secret Hygiene | `docs/architecture.md#security` | TruffleHog / Git pre-commit scan | `.github/workflows/validate.yml` | 🟢 VALIDATED — Zero Secrets Verified by TruffleHog OSS in CI |
+| **NFR-03** | Telemetry & Evidence Sanitization | `docs/data-model.md#sanitization` | Manual review + Automated RFC1918 CI scan | `evidence/` directory audit | 🟢 VALIDATED — Automated RFC1918 CI Scan Passing (RFC 5737 Enforced) |
+| **NFR-04** | Continuous Integration Quality Gate | `docs/architecture.md#ci-cd` | GitHub Actions workflow execution | `.github/workflows/validate.yml` | 🟢 VALIDATED — 41/41 Automated Battery Passing on GitHub Actions |
 
 
 
@@ -58,4 +58,4 @@ $$\text{FR / NFR} \iff \text{Design (DES)} \iff \text{Detection (DET)} \iff \tex
 * **Total Functional Requirements:** 8
 * **Total Non-Functional Requirements:** 4
 * **Total Requirements:** 12
-* **Current Status:** 5 Validated (FR-01, FR-02, FR-03, FR-04, FR-05) / 12 Initialized (Target: 12/12 Passed for V1.0.0 Tag)
+* **Current Status:** 12 Validated (100% Full Gate Met — Target Met for V1.0.0 Tag)

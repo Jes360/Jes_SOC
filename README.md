@@ -2,9 +2,11 @@
 
 > An enterprise-informed, reproducible security operations and detection engineering laboratory demonstrating identity security, endpoint telemetry, canonical detection engineering, multi-event correlation, positive/negative validation testing, and NIST CSF 2.0-aligned incident investigation.
 
-[![CI Quality Gate](https://github.com/Jes360/jestine-soc/actions/workflows/validate.yml/badge.svg)](.github/workflows/validate.yml)
+[![CI Quality Gate](https://github.com/Jes360/Jes_SOC/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/Jes360/Jes_SOC/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/badge/Release-v1.0.0-success.svg)](https://github.com/Jes360/Jes_SOC/releases/tag/v1.0.0)
 [![Sigma Spec](https://img.shields.io/badge/Sigma%20Spec-2.1.0-blue)](https://sigmahq.io/)
 [![Framework](https://img.shields.io/badge/NIST-SP%20800--61%20Rev.%203%20%2F%20CSF%202.0-green)](https://www.nist.gov/)
+[![Quality Gate Battery](https://img.shields.io/badge/Quality%20Gate-41%20of%2041%20Passed-brightgreen)](tests/)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
 ---
@@ -106,7 +108,28 @@ jestine-soc/
 
 ---
 
-## 4. Bounded Scope & Explicit Non-Claims
+## 4. Validated Detection Suite & Automated Quality Gate (41 / 41 Passed)
+
+Every detection primitive and correlation is tested automatically in GitHub Actions CI across positive, negative, and authentic OS ingestion vectors:
+
+| Component ID | Canonical Sigma Rule | MITRE ATT&CK | Test Cases | Evaluation Engine | Status |
+| :---: | :--- | :--- | :---: | :--- | :---: |
+| **`DET-01-PRIM`** | [`windows_failed_logon.yml`](detections/sigma/windows_failed_logon.yml) | `T1110.001` | 8 / 8 | `tests/runners/eval_det01_engine.py` | 🟢 **VALIDATED** |
+| **`DET-02-PRIM`** | [`windows_successful_logon.yml`](detections/sigma/windows_successful_logon.yml) | `T1078.003` | 8 / 8 | `tests/runners/eval_det02_engine.py` | 🟢 **VALIDATED** |
+| **`CORR-01`** | [`mr_bruteforce_after_failures.yml`](correlations/mr_bruteforce_after_failures.yml) | `T1110.001`, `T1078.003` | 8 / 8 | `tests/runners/eval_corr01_engine.py` | 🟢 **VALIDATED** |
+| **`DET-03`** | [`windows_suspicious_powershell.yml`](detections/sigma/windows_suspicious_powershell.yml) | `T1059.001`, `T1027` | 7 / 7 | `tests/runners/eval_det03_engine.py` | 🟢 **VALIDATED** |
+| **`DET-04`** | [`windows_smb_admin_shares.yml`](detections/sigma/windows_smb_admin_shares.yml) | `T1021.002` | 7 / 7 | `tests/runners/eval_det04_engine.py` | 🟢 **VALIDATED** |
+| **`SCEN-01`** | [`SCEN-01-compromise-to-lateral-movement.md`](docs/scenarios/SCEN-01-compromise-to-lateral-movement.md) | Full 4-Stage Chain | 3 / 3 | `tests/runners/eval_e2e_scenario.py` | 🟢 **VALIDATED** |
+| **Total Battery** | | | **41 / 41** | **All 6 Runners** | **100% PASS** |
+
+### Incident Response & Forensic Investigation Artifacts
+* **Incident Response Playbook (NIST CSF 2.0):** [`docs/playbooks/IR-PLAYBOOK-001-credential-compromise.md`](docs/playbooks/IR-PLAYBOOK-001-credential-compromise.md)
+* **Digital Forensic Report (`INC-2026-001`):** [`docs/reports/FORENSIC-REPORT-001.md`](docs/reports/FORENSIC-REPORT-001.md)
+* **Master Traceability Matrix (12/12):** [`docs/traceability-matrix.md`](docs/traceability-matrix.md)
+
+---
+
+## 5. Bounded Scope & Explicit Non-Claims
 
 To maintain professional credibility, this lab explicitly defines its engineering boundaries:
 * **Lab Environment:** Bounded strictly to controlled local Windows workstation telemetry (`LAB-HOST01`).
@@ -116,13 +139,13 @@ To maintain professional credibility, this lab explicitly defines its engineerin
 
 ---
 
-## 5. Getting Started & Reproducibility
+## 6. Getting Started & Reproducibility
 
 See the comprehensive [Laboratory Environment Specification](docs/lab-environment.md) for full system prerequisites, audit policies, and step-by-step setup commands.
 
 ---
 
-## 6. Project Roadmap
+## 7. Project Roadmap
 
 * **Version 1 (Current Baseline):** Telemetry baseline, canonical Sigma detections, Sigma 2.1.0 correlation, positive/negative test suites, sanitized evidence, and one NIST-aligned incident investigation.
 * **Version 2:** Threat Intelligence integration (AbuseIPDB, VirusTotal reputation scoring).

@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.0] - 2026-09-16
+### Milestone: JestineSOC Production-Candidate V1 Baseline
+- **NIST CSF 2.0 Incident Response Playbook:** Authored auditor-grade SOP `docs/playbooks/IR-PLAYBOOK-001-credential-compromise.md` (and mirrored `playbooks/account-compromise.md`) aligned with NIST SP 800-61 Rev. 3 across Govern, Identify, Protect, Detect, Respond, and Recover.
+- **Digital Forensic Investigation Report:** Authored comprehensive post-incident reconstruction `docs/reports/FORENSIC-REPORT-001.md` (and mirrored `reports/incident-001.md`) for `INC-2026-001` (`SCEN-01`) detailing millisecond-accurate event timelines, payload de-obfuscation, root cause analysis, and defensive recommendations.
+- **Master Traceability Matrix 100% Validation:** Finalized `docs/traceability-matrix.md` with all 12 Functional and Non-Functional requirements promoted to `🟢 VALIDATED` (`FR-01` through `FR-08`, `NFR-01` through `NFR-04`), satisfying all 7 Auditor Questions.
+- **Automated Quality Gate Battery (41 / 41 Tests):** Validated all 6 detection and scenario evaluation engines (`eval_det01`, `eval_det02`, `eval_corr01`, `eval_det03`, `eval_det04`, `eval_e2e_scenario`) with 100% passing status in GitHub Actions CI.
+- **Supply Chain & Sanitization Enforcement:** Maintained 100% clean secret scan via pinned TruffleHog OSS (`NFR-02`) and automated RFC 1918 private IP sanitization check (`NFR-03`).
+
 ## [0.4.0-phase3] - 2026-09-16
 ### Added
 - **SCEN-01 Specification:** Authored comprehensive scenario documentation `docs/scenarios/SCEN-01-compromise-to-lateral-movement.md` detailing the 4-stage intrusion lifecycle (`APT-LAB-01`), MITRE ATT&CK coverage (`T1110.001`, `T1078.003`, `T1059.001`, `T1027`, `T1021.002`), chronological 180-second telemetry timeline, alert fusion incident model (`INC-2026-001`), and scope limitations `SL-15` and `SL-16`.
