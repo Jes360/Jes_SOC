@@ -2,7 +2,7 @@
   "TestCaseId": "TC-NEG-003",
   "DetectionId": "DET-02",
   "TestType": "MACHINE_ACCOUNT_FILTER_SUPPRESSION",
-  "Timestamp": "2026-09-16T01:44:34.023455+00:00",
+  "Timestamp": "2026-09-16T01:51:34.401040+00:00",
   "TargetUserName": "LAB-SRV01$",
   "EventID": 4624,
   "LogonType": 3,

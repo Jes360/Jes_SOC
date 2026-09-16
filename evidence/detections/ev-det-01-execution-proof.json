@@ -1,6 +1,6 @@
 {
   "Engine": "JestineSOC Correlation & SIEM Evaluation Runtime v1.1",
-  "EvaluatedAt": "2026-09-16T01:44:33.936217+00:00",
+  "EvaluatedAt": "2026-09-16T01:51:34.319634+00:00",
   "DetectionPrimitives": {
     "DET-01-PRIM": "detections/sigma/windows_failed_logon.yml",
     "CORR-DET01": "correlations/corr_det01_bruteforce_threshold.yml",

@@ -1,0 +1,30 @@
+// ==============================================================================
+// Detection: Suspicious Encoded PowerShell Execution (DET-03)
+// Canonical Source: detections/sigma/windows_suspicious_powershell.yml
+// Target Platform: Splunk Enterprise / Splunk Cloud
+// Technology Add-on: Splunk_TA_windows / Splunk_TA_sysmon
+// MITRE ATT&CK: T1059.001 (PowerShell), T1027 (Obfuscated Files or Information)
+// Severity: High
+// ==============================================================================
+//
+// ARCHITECTURAL TRANSLATION MAPPING:
+// ------------------------------------------------------------------------------
+// 1. Sigma Intent:
+//    Detects process creation events where Image is PowerShell (powershell.exe or pwsh.exe)
+//    and CommandLine contains base64 encoded command arguments (-enc, -encodedcommand, etc.).
+//
+// 2. Splunk Implementation:
+//    Searches both Sysmon EventCode 1 (ProcessCreate) and Windows Security EventCode 4688.
+//    Normalizes CommandLine and NewProcessName/Image fields.
+// ==============================================================================
+
+( (index=sysmon source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1)
+  OR
+  (index=winsec source="XmlWinEventLog:Security" EventCode=4688) )
+| eval ProcessImage=coalesce(Image, NewProcessName, process_path)
+| eval ProcessCommandLine=coalesce(CommandLine, Process_Command_Line, process_exec)
+| where (match(ProcessImage, "(?i)[\\/](powershell|pwsh)\.exe$") OR match(ProcessCommandLine, "(?i)\b(powershell|pwsh)(\.exe)?\b"))
+  AND match(ProcessCommandLine, "(?i)\s+[-/](enc|encodedcommand|encoded|e)([\s=]+|$)")
+| stats min(_time) as FirstSeen max(_time) as LastSeen count by Computer, User, ProcessImage, ProcessCommandLine, ParentImage
+| rename ProcessImage as Image, ProcessCommandLine as CommandLine
+| eval AlertSeverity="High", MitreTechniques="T1059.001, T1027"

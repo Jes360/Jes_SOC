@@ -1,0 +1,13 @@
+{
+    "TestCaseId":  "TC-POS-004",
+    "Generator":  "gen-powershell-events.ps1",
+    "ExecutionTimestamp":  "2026-09-16T11:51:30.5909263+10:00",
+    "TargetImage":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "CommandLine":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAnAEoAZQBzAHQAaQBuAGUAUwBPAEMAIABDAG8AbgB0AHIAbwBsAGwAZQBkACAAVABlAGwAZQBtAGUAdAByAHkAIABUAGUAcwB0ADoAIABIAG8AcwB0ACAARABpAHMAYwBvAHYAZQByAHkAJwA7ACAARwBlAHQALQBEAGEAdABlADsAIABoAG8AcwB0AG4AYQBtAGUA",
+    "DecodedPayload":  "Write-Output \u0027JestineSOC Controlled Telemetry Test: Host Discovery\u0027; Get-Date; hostname",
+    "EncodedPayload":  "VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAnAEoAZQBzAHQAaQBuAGUAUwBPAEMAIABDAG8AbgB0AHIAbwBsAGwAZQBkACAAVABlAGwAZQBtAGUAdAByAHkAIABUAGUAcwB0ADoAIABIAG8AcwB0ACAARABpAHMAYwBvAHYAZQByAHkAJwA7ACAARwBlAHQALQBEAGEAdABlADsAIABoAG8AcwB0AG4AYQBtAGUA",
+    "ExitCode":  0,
+    "Host":  "LAB-HOST01",
+    "SafetyStandard":  "Strictly Benign Lab Simulation (No Malicious Payloads)",
+    "SanitizationStandard":  "RFC 5737 / Local Loopback Compliant (NFR-03)"
+}

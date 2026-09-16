@@ -1,0 +1,107 @@
+[
+  {
+    "TestCaseId": "TC-AUTH-004",
+    "Category": "AUTHENTIC_SYSMON_INGESTION",
+    "Description": "Authentic Sysmon Event 1 process creation with -EncodedCommand argument",
+    "ExpectedState": "MATCH",
+    "ActualState": "MATCH",
+    "Verdict": "PASS",
+    "Reason": "PowerShell binary invoked with encoded command line parameter.",
+    "BoundaryRationale": "Authentic Sysmon record from sysmon-sample.json must match DET-03 criteria.",
+    "EventSample": {
+      "EventID": 1,
+      "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "CommandLine": "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAnAEoAZQBzAHQAaQBuAGUAUwBPAEMAIABDAG8AbgB0AHIAbwBsAGwAZQBkACAAVABlAGwAZQBtAGUAdAByAHkAIABUAGUAcwB0ADoAIABIAG8AcwB0ACAARABpAHMAYwBvAHYAZQByAHkAJwA7ACAAaABvAHMAdABuAGEAbQBlAA=="
+    }
+  },
+  {
+    "TestCaseId": "TC-POS-004",
+    "Category": "CONTROLLED_SIMULATION_PWSH",
+    "Description": "PowerShell Core (pwsh.exe) executed with -enc flag",
+    "ExpectedState": "MATCH",
+    "ActualState": "MATCH",
+    "Verdict": "PASS",
+    "Reason": "PowerShell binary invoked with encoded command line parameter.",
+    "BoundaryRationale": "pwsh.exe is modern PowerShell Core; -enc is a standard encoded alias.",
+    "EventSample": {
+      "EventID": 1,
+      "Image": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "CommandLine": "pwsh.exe -NoProfile -enc VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAnAFQAZQBzAHQAJwA="
+    }
+  },
+  {
+    "TestCaseId": "TC-POS-005",
+    "Category": "CONTROLLED_SIMULATION_SLASH_DELIMITER",
+    "Description": "Windows PowerShell executed with /encodedcommand= flag and equals delimiter",
+    "ExpectedState": "MATCH",
+    "ActualState": "MATCH",
+    "Verdict": "PASS",
+    "Reason": "PowerShell binary invoked with encoded command line parameter.",
+    "BoundaryRationale": "Windows accepts / as parameter prefix and = as argument delimiter.",
+    "EventSample": {
+      "EventID": 4688,
+      "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "CommandLine": "powershell.exe /encodedcommand=VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAnAFQAZQBzAHQAJwA="
+    }
+  },
+  {
+    "TestCaseId": "TC-NEG-013",
+    "Category": "UNENCODED_POWERSHELL_FILTER",
+    "Description": "Standard unencoded powershell command (Get-Process)",
+    "ExpectedState": "NO_MATCH",
+    "ActualState": "NO_MATCH",
+    "Verdict": "PASS",
+    "Reason": "Command line does not contain base64 encoded command arguments (-enc, -encodedcommand, etc.).",
+    "BoundaryRationale": "Standard unencoded command does not match encoded command flags; must suppress alert.",
+    "EventSample": {
+      "EventID": 1,
+      "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "CommandLine": "powershell.exe -NoProfile -Command Get-Process"
+    }
+  },
+  {
+    "TestCaseId": "TC-NEG-014",
+    "Category": "NON_POWERSHELL_BINARY_FILTER",
+    "Description": "Non-PowerShell custom utility executed with -enc flag",
+    "ExpectedState": "NO_MATCH",
+    "ActualState": "NO_MATCH",
+    "Verdict": "PASS",
+    "Reason": "Binary 'custom_encoder.exe' does not match PowerShell executables.",
+    "BoundaryRationale": "Binary is custom_encoder.exe, not powershell.exe/pwsh.exe; must be rejected by selection_img.",
+    "EventSample": {
+      "EventID": 1,
+      "Image": "C:\\Tools\\custom_encoder.exe",
+      "CommandLine": "custom_encoder.exe -enc payload.bin"
+    }
+  },
+  {
+    "TestCaseId": "TC-NEG-015",
+    "Category": "EVENT_CATEGORY_FILTER",
+    "Description": "Sysmon Event 3 Network Connection event",
+    "ExpectedState": "NO_MATCH",
+    "ActualState": "NO_MATCH",
+    "Verdict": "PASS",
+    "Reason": "EventID 3 is not a process creation event (requires Sysmon 1 or Security 4688).",
+    "BoundaryRationale": "Sysmon Event 3 is network activity, not process creation; must be rejected by EventID check.",
+    "EventSample": {
+      "EventID": 3,
+      "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "CommandLine": "powershell.exe -enc VwByAGkAdABl..."
+    }
+  },
+  {
+    "TestCaseId": "TC-NEG-016",
+    "Category": "STANDARD_SHELL_FILTER",
+    "Description": "Standard cmd.exe execution (/c dir)",
+    "ExpectedState": "NO_MATCH",
+    "ActualState": "NO_MATCH",
+    "Verdict": "PASS",
+    "Reason": "Binary 'cmd.exe' does not match PowerShell executables.",
+    "BoundaryRationale": "Standard command prompt execution is not PowerShell and has no encoded parameters.",
+    "EventSample": {
+      "EventID": 4688,
+      "Image": "C:\\Windows\\System32\\cmd.exe",
+      "CommandLine": "cmd.exe /c dir"
+    }
+  }
+]

@@ -1,61 +1,79 @@
 <#
 .SYNOPSIS
-    JestineSOC Controlled PowerShell Telemetry Generator
+    JestineSOC Controlled Telemetry Generator: Encoded PowerShell Simulation
 .DESCRIPTION
-    Executes controlled, benign PowerShell commands utilizing common adversary evasion techniques
-    (Base64 encoding, stealth CLI flags) to cause the operating system and Sysmon to emit Event 1
-    (Process Creation) records for detection rule validation.
-.PARAMETER Technique
-    The specific simulation profile to execute. Options: 'EncodedCommand', 'BypassFlag', 'Discovery'.
-.EXAMPLE
-    .\gen-powershell-events.ps1 -Technique EncodedCommand
+    Executes a strictly benign base64-encoded PowerShell command to produce authentic
+    Process Creation telemetry (Sysmon Event ID 1 / Windows Security Event ID 4688)
+    for DET-03 validation.
+.NOTES
+    Safety Policy: STRICT BENIGN EXECUTION ONLY.
+    Under no circumstances does this generator construct or execute live payloads,
+    network beacons, credential dumps, or download cradles.
+    Standard Alignment: MITRE ATT&CK T1059.001 / NIST CSF 2.0 DE.CM-01
 #>
 
 [CmdletBinding()]
 param(
-    [ValidateSet("EncodedCommand", "BypassFlag", "Discovery")]
-    [string]$Technique = "EncodedCommand"
+    [string]$TestCaseId = "TC-POS-004",
+    [string]$EvidencePath = "evidence/telemetry/ev-powershell-execution.json",
+    [switch]$DryRun
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "  JestineSOC: Controlled Process Telemetry Generator        " -ForegroundColor Cyan
+Write-Host "  JestineSOC: Encoded PowerShell Telemetry Generator      " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "Selected Technique: $Technique" -ForegroundColor White
-Write-Host "MITRE Technique   : T1059.001 (Command and Scripting: PowerShell)" -ForegroundColor White
-Write-Host "Expected Telemetry: Sysmon Event 1 (Process Creation) / Win 4688" -ForegroundColor White
+Write-Host "Test Case ID     : $TestCaseId" -ForegroundColor White
+Write-Host "Safety Policy    : Strictly Benign Discovery Commands Only" -ForegroundColor Green
+Write-Host "Target Telemetry : Process Creation (Sysmon 1 / Security 4688)" -ForegroundColor White
 Write-Host "----------------------------------------------------------" -ForegroundColor DarkGray
 
-$timestamp = (Get-Date).ToString("o")
+# Construct strictly benign PowerShell script
+$benignCommand = "Write-Output 'JestineSOC Controlled Telemetry Test: Host Discovery'; Get-Date; hostname"
+$unicodeBytes = [System.Text.Encoding]::Unicode.GetBytes($benignCommand)
+$base64Encoded = [System.Convert]::ToBase64String($unicodeBytes)
 
-switch ($Technique) {
-    "EncodedCommand" {
-        # Benign discovery payload encoded in UTF-16LE Base64 (Standard Windows command format)
-        $payload = "Write-Output 'JestineSOC Controlled Telemetry Test: Host Discovery'; hostname"
-        $bytes = [System.Text.Encoding]::Unicode.GetBytes($payload)
-        $encoded = [Convert]::ToBase64String($bytes)
-        
-        Write-Host "[*] Launching benign EncodedCommand execution..." -ForegroundColor Yellow
-        Write-Host "    Decoded: $payload" -ForegroundColor DarkGray
-        Write-Host "    Encoded: $encoded" -ForegroundColor DarkGray
-        
-        # Execute in non-interactive, hidden sub-process
-        $p = Start-Process powershell.exe -ArgumentList "-NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand $encoded" -Wait -PassThru
-        Write-Host "[+] Process completed with Exit Code: $($p.ExitCode)" -ForegroundColor Green
-    }
-    
-    "BypassFlag" {
-        Write-Host "[*] Launching ExecutionPolicy Bypass simulation..." -ForegroundColor Yellow
-        $p = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command 'Get-Process -Id $PID'" -Wait -PassThru
-        Write-Host "[+] Process completed with Exit Code: $($p.ExitCode)" -ForegroundColor Green
-    }
-    
-    "Discovery" {
-        Write-Host "[*] Launching benign system discovery sequence..." -ForegroundColor Yellow
-        $p = Start-Process powershell.exe -ArgumentList "-NoProfile -Command 'whoami; net user lab_user_test'" -Wait -PassThru
-        Write-Host "[+] Process completed with Exit Code: $($p.ExitCode)" -ForegroundColor Green
-    }
+$powershellExe = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+$argumentList = "-NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand $base64Encoded"
+
+$startTime = Get-Date
+
+if ($DryRun) {
+    Write-Host "[*] Dry-run enabled. Simulated execution:" -ForegroundColor Yellow
+    Write-Host "    Executable: $powershellExe" -ForegroundColor Yellow
+    Write-Host "    Arguments : $argumentList" -ForegroundColor Yellow
+    $exitCode = 0
+} else {
+    Write-Host "[*] Executing benign encoded command..." -ForegroundColor Yellow
+    $proc = Start-Process -FilePath $powershellExe -ArgumentList $argumentList -NoNewWindow -PassThru -Wait
+    $exitCode = $proc.ExitCode
+    Write-Host "[+] Execution completed with exit code: $exitCode" -ForegroundColor Green
 }
 
-Write-Host "----------------------------------------------------------" -ForegroundColor DarkGray
-Write-Host "Simulation complete at $timestamp. Telemetry recorded by OS." -ForegroundColor Cyan
+$endTime = Get-Date
+
+$metadata = [ordered]@{
+    TestCaseId           = $TestCaseId
+    Generator            = "gen-powershell-events.ps1"
+    ExecutionTimestamp   = $startTime.ToString("o")
+    TargetImage          = $powershellExe
+    CommandLine          = "$powershellExe $argumentList"
+    DecodedPayload       = $benignCommand
+    EncodedPayload       = $base64Encoded
+    ExitCode             = $exitCode
+    Host                 = "LAB-HOST01"
+    SafetyStandard       = "Strictly Benign Lab Simulation (No Malicious Payloads)"
+    SanitizationStandard = "RFC 5737 / Local Loopback Compliant (NFR-03)"
+}
+
+if ($EvidencePath) {
+    $evidenceDir = Split-Path $EvidencePath -Parent
+    if ($evidenceDir -and -not (Test-Path $evidenceDir)) {
+        New-Item -ItemType Directory -Path $evidenceDir -Force | Out-Null
+    }
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($EvidencePath, ($metadata | ConvertTo-Json -Depth 4), $utf8NoBom)
+    Write-Host "[+] Generator metadata written to: $EvidencePath" -ForegroundColor Green
+}
+
 Write-Host "==========================================================" -ForegroundColor Cyan
+return $metadata

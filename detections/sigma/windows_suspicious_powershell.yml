@@ -1,0 +1,64 @@
+title: Suspicious Encoded PowerShell Execution
+id: c7b3e1a2-9d8f-4c5e-8b1a-2f3e4d5c6b03
+status: test
+description: |
+  Detects the execution of Windows PowerShell or PowerShell Core passing base64
+  encoded commands via command-line flags (-EncodedCommand, -enc, -e, etc.).
+  Adversaries frequently utilize encoded commands to conceal payloads and evade
+  string-based command-line inspection.
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+  - https://attack.mitre.org/techniques/T1027/
+author: JestineSOC Detection Engineering Team
+date: 2026-09-16
+modified: 2026-09-16
+tags:
+  - attack.execution
+  - attack.t1059.001
+  - attack.defense-evasion
+  - attack.t1027
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_img:
+    - Image|endswith:
+        - '\powershell.exe'
+        - '\pwsh.exe'
+    - OriginalFileName:
+        - 'PowerShell.EXE'
+        - 'pwsh.dll'
+  selection_cli:
+    - CommandLine|contains:
+        - ' -EncodedCommand '
+        - ' -encodedcommand '
+        - ' -EncodedCommand='
+        - ' -encodedcommand='
+        - ' -encoded '
+        - ' -encoded='
+        - ' -enc '
+        - ' -enc='
+        - ' -e '
+        - ' -e='
+        - ' /EncodedCommand '
+        - ' /encodedcommand '
+        - ' /EncodedCommand='
+        - ' /encodedcommand='
+        - ' /encoded '
+        - ' /encoded='
+        - ' /enc '
+        - ' /enc='
+        - ' /e '
+        - ' /e='
+  condition: selection_img and selection_cli
+fields:
+  - CommandLine
+  - Image
+  - ParentImage
+  - ParentCommandLine
+  - User
+  - Computer
+falsepositives:
+  - Legitimate enterprise deployment scripts or systems management agents (e.g. Microsoft Endpoint Configuration Manager, Chocolatey, Intune)
+  - Administrative maintenance scripts wrapping complex commands in base64 encoding
+level: high

@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [0.3.3-det03] - 2026-09-16
+### Added
+- **DET-03 Specification:** Authored complete 23-section detection specification `docs/detections/DET-03-windows-suspicious-powershell.md` defining the suspicious encoded execution primitive (`DET-03`), ATT&CK `T1059.001` and `T1027` mappings, scope limitations `SL-09`, `SL-10`, and `SL-11`, and 5-stage SOC triage playbook.
+- **Canonical Sigma Rule:** Created `detections/sigma/windows_suspicious_powershell.yml` (`level: high`) targeting `powershell.exe` and `pwsh.exe` with base64 encoded command argument variations (`-EncodedCommand`, `-encoded`, `-enc`, `-e`, `/enc`, `/e`, etc.) across space and equals delimiters.
+- **Derived SIEM Translations:** Built `detections/splunk/windows_suspicious_powershell.spl` and `detections/kql/windows_suspicious_powershell.kql` supporting multi-source union over Sysmon Event 1 and Windows Security Event 4688.
+- **Controlled Telemetry Generator:** Implemented `telemetry/generators/gen-powershell-events.ps1` strictly adhering to the benign lab simulation policy (executing harmless discovery commands `Write-Output`, `Get-Date`, `hostname`).
+- **Automated Evaluation Engine & Boundary Suite:** Implemented `tests/runners/eval_det03_engine.py` and `tests/test_det03_boundary_suite.ps1` evaluating authentic Sysmon Event 1 (`TC-AUTH-004`) from `sysmon-sample.json` and 6 boundary conditions (`TC-POS-004`..`005`, `TC-NEG-013`..`016`), generating `evidence/detections/ev-det-03-boundary-matrix.json` and `ev-det-03-execution-proof.json`.
+- **CI Pipeline Integration:** Wired `eval_det03_engine.py` into `.github/workflows/validate.yml`.
+- **Traceability Updates:** Promoted `FR-04` and `CORR-01` to `VALIDATED`; advanced `FR-02` and `T1059.001` to `IMPLEMENTED` with complete audit lineage.
+
 ## [0.3.2-corr01] - 2026-09-16
 ### Added
 - **CORR-01 Specification:** Authored complete 23-section detection specification `docs/correlations/CORR-01-mr_bruteforce_after_failures.md` defining the composite multi-event correlation rule (`CORR-01`), ATT&CK `T1110.001` and `T1078.003` mappings, scope limitations `SL-06`, `SL-07`, and `SL-08`, and 5-stage SOC triage checklist.

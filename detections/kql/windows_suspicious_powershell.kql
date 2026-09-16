@@ -1,0 +1,40 @@
+// ==============================================================================
+// Detection: Suspicious Encoded PowerShell Execution (DET-03)
+// Canonical Source: detections/sigma/windows_suspicious_powershell.yml
+// Target Platform: Microsoft Sentinel / Microsoft Defender for Endpoint
+// Tables: SecurityEvent (4688) / Event (Sysmon 1) / DeviceProcessEvents
+// MITRE ATT&CK: T1059.001 (PowerShell), T1027 (Obfuscated Files or Information)
+// Severity: High
+// ==============================================================================
+//
+// ARCHITECTURAL TRANSLATION MAPPING:
+// ------------------------------------------------------------------------------
+// 1. Sigma Intent:
+//    Matches PowerShell executions with base64 encoded command arguments.
+//
+// 2. KQL Implementation:
+//    Supports multi-table correlation across standard Windows Security Event 4688
+//    and Microsoft Defender for Endpoint DeviceProcessEvents.
+// ==============================================================================
+
+let lookback = 24h;
+let encodedRegex = @"(?i)\s+[-/](enc|encodedcommand|encoded|e)([\s=]+|$)";
+let powershellRegex = @"(?i)(powershell|pwsh)\.exe$";
+// Option A: Microsoft Sentinel SecurityEvent / Sysmon Event
+let SysmonProcess = Event
+| where TimeGenerated >= ago(lookback)
+| where Source == "Microsoft-Windows-Sysmon" and EventID == 1
+| extend ProcessCommandLine = tostring(parse_xml(EventData).Data[10]["#text"])
+| extend ProcessImage = tostring(parse_xml(EventData).Data[4]["#text"])
+| where ProcessImage matches regex powershellRegex
+| where ProcessCommandLine matches regex encodedRegex
+| project TimeGenerated, Computer, Account = UserName, Image = ProcessImage, CommandLine = ProcessCommandLine, TableSource = "Sysmon_Event1";
+let Security4688 = SecurityEvent
+| where TimeGenerated >= ago(lookback)
+| where EventID == 4688
+| where NewProcessName matches regex powershellRegex
+| where CommandLine matches regex encodedRegex
+| project TimeGenerated, Computer, Account, Image = NewProcessName, CommandLine, TableSource = "Security_4688";
+union isfuzzy=true SysmonProcess, Security4688
+| summarize min(TimeGenerated), max(TimeGenerated), count() by Computer, Account, Image, CommandLine, TableSource
+| extend AlertSeverity = "High", MitreTechniques = "T1059.001, T1027"
