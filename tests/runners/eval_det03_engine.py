@@ -51,8 +51,7 @@ def evaluate_process_event(event: Dict[str, Any]) -> Tuple[bool, str]:
         return False, f"EventID {eid} is not a process creation event (requires Sysmon 1 or Security 4688)."
 
     image = event.get("Image") or event.get("NewProcessName") or ""
-    image_lower = image.lower().replace("/", "\\")
-    binary_name = os.path.basename(image_lower)
+    binary_name = re.split(r"[\\/]", image.lower())[-1] if image else ""
     orig_filename = (event.get("OriginalFileName") or "").lower()
 
     is_powershell_binary = (
